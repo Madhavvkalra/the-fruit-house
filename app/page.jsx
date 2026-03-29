@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
-// NEW: Import the premium Gen-Z font built right into Next.js
-import { Syne } from 'next/font/google'; 
+// NEW: Import Archivo Black from Google Fonts
+import { Archivo_Black } from 'next/font/google'; 
 
-// Initialize the font to use its heaviest weights for maximum impact
-const syneFont = Syne({ subsets: ['latin'], weight: ['700', '800'] });
+// Initialize Archivo Black (It is naturally ultra-bold, so it only uses weight '400')
+const archivoBlack = Archivo_Black({ subsets: ['latin'], weight: '400' });
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -40,8 +40,7 @@ export default function Home() {
       const timer2 = setTimeout(() => {
         setHideLoader(true); 
         
-        // NEW: The cinematic fade-in! 
-        // Once the loader vanishes, this elegantly reveals the first text.
+        // The cinematic fade-in for the massive Archivo text
         gsap.to(text1Ref.current, { opacity: 1, duration: 1.5, ease: "power2.out" });
       }, 1400); 
 
@@ -137,7 +136,6 @@ export default function Home() {
       onUpdate: requestRender 
     }, 0);
 
-    // Note: text1Ref now handles its own fade-in, but this timeline will still fade it out when you scroll!
     tl.to(text1Ref.current, { opacity: 0, duration: 0.1 }, 0.15) 
       .to(text2Ref.current, { opacity: 1, duration: 0.1 }, 0.3)  
       .to(text2Ref.current, { opacity: 0, duration: 0.1 }, 0.45) 
@@ -182,13 +180,12 @@ export default function Home() {
             <h1 
               id="text-fallback" 
               style={{ display: 'none' }} 
-              className={`${syneFont.className} text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-8 text-center`}
+              className={`${archivoBlack.className} text-4xl md:text-6xl text-white uppercase mb-8 text-center`}
             >
               The Fruit House
             </h1>
             
-            {/* Added the Gen-Z font to the numbers too! */}
-            <div className={`${syneFont.className} text-white/60 font-extrabold text-xl md:text-3xl tracking-widest text-center`}>
+            <div className={`${archivoBlack.className} text-white/60 text-xl md:text-3xl tracking-widest text-center`}>
               {progress}%
             </div>
           </div>
@@ -196,33 +193,32 @@ export default function Home() {
       )}
 
       {/* --- THE MAIN WEBSITE --- */}
-      {/* Added the syneFont.className to the main container so all text inherits the new aesthetic */}
-      <main ref={containerRef} className={`relative h-screen bg-black overflow-hidden ${syneFont.className}`}>
+      {/* Applied Archivo Black to the entire main section */}
+      <main ref={containerRef} className={`relative h-screen bg-black overflow-hidden ${archivoBlack.className}`}>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
           <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
 
           <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
             
-            {/* CRITICAL CHANGE: opacity-0 ensures it is completely hidden until the GSAP command fades it in! */}
-            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
               Pure Origins.
             </h1>
             
-            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
               Precision Packed.
             </h1>
             
-            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
               Flawless Yield.
             </h1>
             
             <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
-              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
                 The New Standard.
               </h1>
               <div className="pointer-events-auto mt-8 md:mt-12">
-                <button className="text-sm md:text-lg font-bold tracking-widest uppercase border-2 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
+                <button className="text-sm md:text-lg tracking-widest uppercase border-4 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
                   Partner With Us
                 </button>
               </div>
