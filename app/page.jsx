@@ -69,16 +69,13 @@ export default function Home() {
       const handleImageLoadOrError = () => {
         loadedCount++;
         setProgress(Math.floor((loadedCount / frameCount) * 100)); 
-        
-        if (i === 1) {
-          render(1);
-        }
+        if (i === 1) render(1);
       };
 
       img.onload = handleImageLoadOrError;
       
       img.onerror = () => {
-        console.warn(`Frame ${i} missing, but we are skipping it!`);
+        console.warn(`Frame ${i} missing, skipping.`);
         handleImageLoadOrError();
       };
 
@@ -149,28 +146,40 @@ export default function Home() {
 
   return (
     <>
-      {/* --- THE PRELOADER SCREEN --- */}
+      {/* --- THE BULLETPROOF PRELOADER --- */}
       {!hideLoader && (
         <div 
-          className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
+          className={`fixed top-0 left-0 w-screen h-screen z-[9999] flex flex-col items-center justify-center bg-black transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
             isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          {/* This container keeps the logo and percentage perfectly centered */}
           <div 
-            className={`flex flex-col items-center justify-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
+            className={`flex flex-col items-center justify-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] w-full max-w-lg px-4 ${
               isLoading ? 'scale-100' : 'scale-[20]'
             }`}
           >
-            {/* --- YOUR LOGO --- */}
-            {/* If your file is named something else, change the src="/logo.png" below! */}
+            {/* The Logo Image */}
             <img 
               src="/logo.png" 
-              alt="The Fruit House Logo" 
-              className="w-48 md:w-64 h-auto object-contain mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              alt="The Fruit House" 
+              className="w-48 md:w-72 h-auto object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              onError={(e) => {
+                // If logo.png is missing, hide the broken image and show the text fallback!
+                e.target.style.display = 'none';
+                document.getElementById('text-fallback').style.display = 'block';
+              }}
             />
             
-            <div className="text-white/60 font-bold text-xl md:text-2xl tracking-widest">
+            {/* The Text Fallback (Only shows if image is missing) */}
+            <h1 
+              id="text-fallback" 
+              style={{ display: 'none' }} 
+              className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-8 text-center"
+            >
+              The Fruit House
+            </h1>
+            
+            <div className="text-white/60 font-bold text-xl md:text-3xl tracking-widest text-center">
               {progress}%
             </div>
           </div>
@@ -208,4 +217,5 @@ export default function Home() {
       </main>
     </>
   );
+}
 }
