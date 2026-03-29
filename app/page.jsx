@@ -64,7 +64,7 @@ export default function Home() {
         trigger: containerRef.current,
         pin: true, // THIS IS THE MAGIC TRICK! It locks the screen in place.
         start: 'top top',
-        end: '+=600%', // Gives you a nice long scroll distance to play the video
+        end: '+=400%', // Gives you a nice long scroll distance to play the video
         scrub: 0.5, 
       }
     });
