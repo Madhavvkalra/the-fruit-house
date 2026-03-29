@@ -162,13 +162,14 @@ export default function Home() {
             <img 
               src="/logo.png" 
               alt="The Fruit House" 
-              className="w-16 md:w-24 h-auto object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              // THIS IS THE NUCLEAR OPTION: It forces the logo to be exactly 120 pixels wide, no matter what.
+              style={{ width: '120px', height: 'auto', display: 'block', margin: '0 auto' }} 
+              className="object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
               onError={(e) => {
                 e.target.style.display = 'none';
                 document.getElementById('text-fallback').style.display = 'block';
               }}
             />
-
             
             {/* The Text Fallback (Only shows if image is missing) */}
             <h1 
