@@ -171,7 +171,7 @@ export default function Home() {
               src="/logo.png" 
               alt="The Fruit House" 
               style={{ width: '120px', height: 'auto', display: 'block', margin: '0 auto' }} 
-              className="object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              className="object-contain mb-8"
               onError={(e) => {
                 e.target.style.display = 'none';
                 document.getElementById('text-fallback').style.display = 'block';
@@ -200,26 +200,25 @@ export default function Home() {
 
           <div className={`relative z-20 w-full h-full flex items-center justify-center text-center px-4 transition-opacity duration-1000 ease-in-out ${hideLoader ? 'opacity-100' : 'opacity-0'}`}>
             
-            {/* FIXED: Replaced drop-shadow with text-shadow and increased sizes (text-6xl up to lg:text-[10rem]) */}
-            <h1 ref={text1Ref} className="absolute w-full text-6xl sm:text-8xl md:text-[7rem] lg:text-[10rem] text-white uppercase [text-shadow:0px_0px_30px_rgba(0,0,0,1)] opacity-100">
+            {/* FIXED: Removed ALL shadows, bumped up text size dramatically, added leading-none so lines stay tight */}
+            <h1 ref={text1Ref} className="absolute w-full text-7xl sm:text-[7rem] md:text-[10rem] lg:text-[14rem] leading-none text-white uppercase opacity-100">
               Pure Origins.
             </h1>
             
-            <h1 ref={text2Ref} className="absolute w-full text-6xl sm:text-8xl md:text-[7rem] lg:text-[10rem] text-white uppercase [text-shadow:0px_0px_30px_rgba(0,0,0,1)] opacity-0">
+            <h1 ref={text2Ref} className="absolute w-full text-7xl sm:text-[7rem] md:text-[10rem] lg:text-[14rem] leading-none text-white uppercase opacity-0">
               Precision Packed.
             </h1>
             
-            <h1 ref={text3Ref} className="absolute w-full text-6xl sm:text-8xl md:text-[7rem] lg:text-[10rem] text-white uppercase [text-shadow:0px_0px_30px_rgba(0,0,0,1)] opacity-0">
+            <h1 ref={text3Ref} className="absolute w-full text-7xl sm:text-[7rem] md:text-[10rem] lg:text-[14rem] leading-none text-white uppercase opacity-0">
               Flawless Yield.
             </h1>
             
             <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
-              <h1 className="text-6xl sm:text-8xl md:text-[7rem] lg:text-[10rem] text-white uppercase [text-shadow:0px_0px_30px_rgba(0,0,0,1)]">
+              <h1 className="text-7xl sm:text-[7rem] md:text-[10rem] lg:text-[14rem] leading-none text-white uppercase">
                 The New Standard.
               </h1>
-              <div className="pointer-events-auto mt-8 md:mt-12">
-                {/* Bumped the button size up slightly so it balances with the bigger text */}
-                <button className="text-base md:text-xl tracking-widest uppercase border-4 border-white text-white bg-black/20 backdrop-blur-sm px-10 py-5 hover:bg-white hover:text-black transition-colors duration-300">
+              <div className="pointer-events-auto mt-12 md:mt-16">
+                <button className="text-lg md:text-2xl tracking-widest uppercase border-4 border-white text-white bg-black/20 backdrop-blur-sm px-12 py-6 hover:bg-white hover:text-black transition-colors duration-300">
                   Partner With Us
                 </button>
               </div>
@@ -231,4 +230,3 @@ export default function Home() {
     </>
   );
 }
-
