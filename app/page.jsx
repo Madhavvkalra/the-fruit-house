@@ -32,12 +32,11 @@ export default function Home() {
   useEffect(() => {
     if (progress === 100) {
       const timer1 = setTimeout(() => {
-        setIsLoading(false); 
+        setIsLoading(false); // Triggers the zoom out
       }, 400); 
       
       const timer2 = setTimeout(() => {
-        setHideLoader(true); 
-        // We removed the GSAP fade-in here. The loader fading out naturally reveals the text!
+        setHideLoader(true); // Deletes the logo screen completely
       }, 1400); 
 
       return () => {
@@ -77,7 +76,7 @@ export default function Home() {
         if (i === 1) render(1);
         
         if (loadedCount === frameCount) {
-          render(1);
+          render(1); // Ensures the photo is loaded behind the preloader
         }
       };
 
@@ -144,7 +143,7 @@ export default function Home() {
       .to(text3Ref.current, { opacity: 0, duration: 0.1 }, 0.75) 
       .to(text4Ref.current, { opacity: 1, duration: 0.1 }, 0.85); 
 
-    requestRender();
+    requestRender(); // Forces the first photo to paint immediately
 
     window.addEventListener('resize', handleResize);
 
@@ -199,9 +198,9 @@ export default function Home() {
           <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
           <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
 
-          <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
+          {/* THE FIX: This container stays completely invisible (opacity-0) until the loader is completely unmounted (hideLoader=true), then elegantly fades in over 1 second! */}
+          <div className={`relative z-20 w-full h-full flex items-center justify-center text-center px-4 transition-opacity duration-1000 ease-in-out ${hideLoader ? 'opacity-100' : 'opacity-0'}`}>
             
-            {/* FIXED: Starts at opacity-100 so GSAP remembers its base state! Shadow offset removed. */}
             <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_0_20px_rgba(0,0,0,1)] opacity-100">
               Pure Origins.
             </h1>
