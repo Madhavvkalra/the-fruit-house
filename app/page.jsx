@@ -26,16 +26,15 @@ export default function Home() {
     return `/sequence/ezgif-frame-${paddedIndex}.webp`;
   };
 
-  // NEW: The "Watcher". This guarantees the loader dies the absolute second it hits 100
   useEffect(() => {
     if (progress === 100) {
       const timer1 = setTimeout(() => {
-        setIsLoading(false); // Triggers the zoom out
-      }, 400); // Hold at 100% for a split second
+        setIsLoading(false); 
+      }, 400); 
       
       const timer2 = setTimeout(() => {
-        setHideLoader(true); // Deletes it from the website
-      }, 1400); // Wait for the zoom animation to finish
+        setHideLoader(true); 
+      }, 1400); 
 
       return () => {
         clearTimeout(timer1);
@@ -67,10 +66,8 @@ export default function Home() {
     for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
       
-      // CRITICAL FIX: We tell the code what to do BEFORE we give it the image
       const handleImageLoadOrError = () => {
         loadedCount++;
-        // Use Math.floor so it only hits 100 when it is truly finished
         setProgress(Math.floor((loadedCount / frameCount) * 100)); 
         
         if (i === 1) {
@@ -85,7 +82,6 @@ export default function Home() {
         handleImageLoadOrError();
       };
 
-      // NOW we give it the image, so it is impossible to skip our rules
       img.src = currentFrame(i);
       img.decode().catch(() => {}); 
       images.push(img);
@@ -160,14 +156,20 @@ export default function Home() {
             isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
+          {/* This container keeps the logo and percentage perfectly centered */}
           <div 
-            className={`flex flex-col items-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
-              isLoading ? 'scale-100' : 'scale-[15]'
+            className={`flex flex-col items-center justify-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
+              isLoading ? 'scale-100' : 'scale-[20]'
             }`}
           >
-            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-              The Fruit House
-            </h1>
+            {/* --- YOUR LOGO --- */}
+            {/* If your file is named something else, change the src="/logo.png" below! */}
+            <img 
+              src="/logo.png" 
+              alt="The Fruit House Logo" 
+              className="w-48 md:w-64 h-auto object-contain mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            />
+            
             <div className="text-white/60 font-bold text-xl md:text-2xl tracking-widest">
               {progress}%
             </div>
