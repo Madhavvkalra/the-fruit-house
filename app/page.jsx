@@ -2,6 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+
+// Turn the scroll engine back on
+gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
   const containerRef = useRef(null);
@@ -12,8 +16,8 @@ export default function Home() {
   const text3Ref = useRef(null);
   const text4Ref = useRef(null);
 
-  // Set this back to 156 when you are ready for the full premium video!
-  const frameCount = 10; 
+  // Set to 60 so you can actually see movement without crashing your PC!
+  const frameCount = 60; 
   
   const currentFrame = (index) => {
     const paddedIndex = index.toString().padStart(3, '0'); 
@@ -55,24 +59,29 @@ export default function Home() {
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     }
 
-    // This creates an automatic timeline that plays over 5 seconds
-    let tl = gsap.timeline();
+    let tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: containerRef.current,
+        pin: true, // THIS IS THE MAGIC TRICK! It locks the screen in place.
+        start: 'top top',
+        end: '+=300%', // Gives you a nice long scroll distance to play the video
+        scrub: 0.5, 
+      }
+    });
 
     tl.to(sequence, {
       frame: frameCount,
       snap: 'frame',
       ease: 'none',
-      duration: 5, // This makes the video last exactly 5 seconds
       onUpdate: () => render(sequence.frame)
     }, 0);
 
-    // This times the text fades perfectly with the 5-second video
-    tl.to(text1Ref.current, { opacity: 0, duration: 0.5 }, 1) 
-      .to(text2Ref.current, { opacity: 1, duration: 0.5 }, 1.5)
-      .to(text2Ref.current, { opacity: 0, duration: 0.5 }, 2.5)
-      .to(text3Ref.current, { opacity: 1, duration: 0.5 }, 3)
-      .to(text3Ref.current, { opacity: 0, duration: 0.5 }, 4)
-      .to(text4Ref.current, { opacity: 1, duration: 0.5 }, 4.5);
+    tl.to(text1Ref.current, { opacity: 0, duration: 0.5 }, 0.2) 
+      .to(text2Ref.current, { opacity: 1, duration: 0.5 }, 0.4)
+      .to(text2Ref.current, { opacity: 0, duration: 0.5 }, 0.8)
+      .to(text3Ref.current, { opacity: 1, duration: 0.5 }, 1.0)
+      .to(text3Ref.current, { opacity: 0, duration: 0.5 }, 1.4)
+      .to(text4Ref.current, { opacity: 1, duration: 0.5 }, 1.6);
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
@@ -84,11 +93,11 @@ export default function Home() {
     return () => {
       window.removeEventListener('resize', handleResize);
       tl.kill(); 
+      ScrollTrigger.getAll().forEach(t => t.kill()); // Cleans up the scroll lock
     };
   }, []);
 
   return (
-    // Changed from h-[400vh] to h-screen so it locks beautifully on the display
     <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <canvas ref={canvasRef} className="absolute inset-0 z-0" />
@@ -104,16 +113,19 @@ export default function Home() {
           <h1 ref={text3Ref} className="absolute inset-0 flex flex-col items-center justify-center text-5xl md:text-8xl font-black text-white tracking-tighter uppercase drop-shadow-2xl opacity-0">
             Flawless Yield.
           </h1>
-          <div ref={text4Ref} className="absolute inset-0 flex flex-col items-center justify-center opacity-0">
+          <div ref={text4Ref} className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none">
             <h1 className="text-5xl md:text-8xl font-black text-white tracking-tighter uppercase drop-shadow-2xl">
               The New Standard.
             </h1>
-            <button className="mt-8 text-lg font-bold tracking-widest uppercase border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-black transition-colors duration-300 pointer-events-auto">
-              Partner With Us
-            </button>
+            <div className="pointer-events-auto mt-8">
+              <button className="text-lg font-bold tracking-widest uppercase border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-black transition-colors duration-300">
+                Partner With Us
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </main>
   );
+}
 }
