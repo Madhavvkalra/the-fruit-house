@@ -47,25 +47,32 @@ export default function Home() {
     let renderRequested = false; 
     let loadedCount = 0; // Tracks exactly how many images are ready
 
-    for (let i = 1; i <= frameCount; i++) {
+        for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
       img.src = currentFrame(i);
       
-      // --- NEW: Real-time Loading Logic ---
-      img.onload = () => {
+      // We moved the completion check into its own tiny function so both success and failure can use it
+      const handleImageLoadOrError = () => {
         loadedCount++;
-        // Calculate the true percentage of loaded frames
         setProgress(Math.round((loadedCount / frameCount) * 100));
         
-        // Once all 156 frames are officially in the GPU:
         if (loadedCount === frameCount) {
           setTimeout(() => {
-            setIsLoading(false); // Triggers the massive zoom-out animation
+            setIsLoading(false); 
             setTimeout(() => {
-              setHideLoader(true); // Removes the loader from the website completely
-            }, 1000); // Waits 1 second for the zoom animation to finish
-          }, 400); // Holds at 100% for a split second so the user registers it
+              setHideLoader(true); 
+            }, 1000); 
+          }, 400); 
         }
+      };
+
+      // If it loads perfectly, count it!
+      img.onload = handleImageLoadOrError;
+
+      // NEW: If the image is missing or broken, print a warning in the console but KEEP GOING!
+      img.onerror = () => {
+        console.warn(`Warning: Frame ${i} failed to load. Check the file name!`);
+        handleImageLoadOrError(); 
       };
 
       img.decode().catch(() => {}); 
