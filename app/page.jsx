@@ -17,7 +17,7 @@ export default function Home() {
   const text4Ref = useRef(null);
 
   // Set to 60 so you can actually see movement without crashing your PC!
-  const frameCount = 60; 
+  const frameCount = 156; 
   
   const currentFrame = (index) => {
     const paddedIndex = index.toString().padStart(3, '0'); 
@@ -64,7 +64,7 @@ export default function Home() {
         trigger: containerRef.current,
         pin: true, // THIS IS THE MAGIC TRICK! It locks the screen in place.
         start: 'top top',
-        end: '+=300%', // Gives you a nice long scroll distance to play the video
+        end: '+=600%', // Gives you a nice long scroll distance to play the video
         scrub: 0.5, 
       }
     });
