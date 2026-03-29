@@ -28,12 +28,20 @@ export default function Home() {
     
     const context = canvas.getContext('2d');
     
+    // This ensures the canvas draws perfectly on any device (Mobile, Tab, Laptop)
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      render(sequence.frame);
+    };
+    
+    // Initial size setup
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     const images = [];
     const sequence = { frame: 1 }; 
-    let renderRequested = false; // The new throttle switch
+    let renderRequested = false; 
 
     for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
@@ -44,7 +52,7 @@ export default function Home() {
     images[0].onload = () => render(1);
 
     function render(index) {
-      renderRequested = false; // Reset the throttle
+      renderRequested = false; 
       if (!images[index - 1]) return;
       const img = images[index - 1];
       
@@ -59,7 +67,6 @@ export default function Home() {
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     }
 
-    // This ensures the browser only draws when it has the power to do so
     function requestRender() {
       if (!renderRequested) {
         renderRequested = true;
@@ -77,25 +84,23 @@ export default function Home() {
       }
     });
 
+    // We set the video duration to exactly "1" (which means 100% of the scroll)
     tl.to(sequence, {
       frame: frameCount,
       snap: 'frame',
       ease: 'none',
-      onUpdate: requestRender // We use the throttle here instead of drawing directly
+      duration: 1, 
+      onUpdate: requestRender 
     }, 0);
 
-    tl.to(text1Ref.current, { opacity: 0, duration: 0.5 }, 0.2) 
-      .to(text2Ref.current, { opacity: 1, duration: 0.5 }, 0.4)
-      .to(text2Ref.current, { opacity: 0, duration: 0.5 }, 0.8)
-      .to(text3Ref.current, { opacity: 1, duration: 0.5 }, 1.0)
-      .to(text3Ref.current, { opacity: 0, duration: 0.5 }, 1.4)
-      .to(text4Ref.current, { opacity: 1, duration: 0.5 }, 1.6);
+    // Now the text is synced by PERCENTAGE of the video, so it matches perfectly every time
+    tl.to(text1Ref.current, { opacity: 0, duration: 0.1 }, 0.15) // Fades out at 15% of the video
+      .to(text2Ref.current, { opacity: 1, duration: 0.1 }, 0.3)  // Fades in at 30%
+      .to(text2Ref.current, { opacity: 0, duration: 0.1 }, 0.45) // Fades out at 45%
+      .to(text3Ref.current, { opacity: 1, duration: 0.1 }, 0.6)  // Fades in at 60%
+      .to(text3Ref.current, { opacity: 0, duration: 0.1 }, 0.75) // Fades out at 75%
+      .to(text4Ref.current, { opacity: 1, duration: 0.1 }, 0.85); // Fades in at 85% and stays
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      render(sequence.frame);
-    };
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -109,31 +114,36 @@ export default function Home() {
     <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <canvas ref={canvasRef} className="absolute inset-0 z-0" />
-        <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
 
-        <div className="relative z-20 w-full text-center px-4">
-          <h1 ref={text1Ref} className="absolute inset-0 flex flex-col items-center justify-center text-5xl md:text-8xl font-black text-white tracking-tighter uppercase drop-shadow-2xl opacity-100">
+        {/* The Text Container: Perfectly centered, massive fonts on all 3 devices */}
+        <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
+          
+          <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-100">
             Pure Origins.
           </h1>
-          <h1 ref={text2Ref} className="absolute inset-0 flex flex-col items-center justify-center text-5xl md:text-8xl font-black text-white tracking-tighter uppercase drop-shadow-2xl opacity-0">
+          
+          <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
             Precision Packed.
           </h1>
-          <h1 ref={text3Ref} className="absolute inset-0 flex flex-col items-center justify-center text-5xl md:text-8xl font-black text-white tracking-tighter uppercase drop-shadow-2xl opacity-0">
+          
+          <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
             Flawless Yield.
           </h1>
-          <div ref={text4Ref} className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none">
-            <h1 className="text-5xl md:text-8xl font-black text-white tracking-tighter uppercase drop-shadow-2xl">
+          
+          <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
+            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
               The New Standard.
             </h1>
-            <div className="pointer-events-auto mt-8">
-              <button className="text-lg font-bold tracking-widest uppercase border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-black transition-colors duration-300">
+            <div className="pointer-events-auto mt-8 md:mt-12">
+              <button className="text-sm md:text-lg font-bold tracking-widest uppercase border-2 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
                 Partner With Us
               </button>
             </div>
           </div>
+
         </div>
       </div>
     </main>
   );
 }
-
