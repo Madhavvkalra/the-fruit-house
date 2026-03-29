@@ -26,16 +26,16 @@ export default function Home() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const context = canvas.getContext('2d');
+    // HARDWARE HACK: alpha: false removes background transparency math. 
+    // desynchronized: true pushes images to the screen bypassing the main thread queue.
+    const context = canvas.getContext('2d', { alpha: false, desynchronized: true });
     
-    // This ensures the canvas draws perfectly on any device (Mobile, Tab, Laptop)
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       render(sequence.frame);
     };
     
-    // Initial size setup
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -53,8 +53,12 @@ export default function Home() {
 
     function render(index) {
       renderRequested = false; 
-      if (!images[index - 1]) return;
-      const img = images[index - 1];
+      
+      // MATH HACK: Force the index to be a perfect whole number (no decimals like 45.7)
+      const exactFrame = Math.round(index);
+      
+      if (!images[exactFrame - 1]) return;
+      const img = images[exactFrame - 1];
       
       const hRatio = canvas.width / img.width;
       const vRatio = canvas.height / img.height;
@@ -63,7 +67,9 @@ export default function Home() {
       const centerShift_x = (canvas.width - img.width * ratio) / 2;
       const centerShift_y = (canvas.height - img.height * ratio) / 2;
       
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      // Because we set alpha: false, we can skip clearRect and just paint black!
+      context.fillStyle = "black";
+      context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     }
 
@@ -84,7 +90,6 @@ export default function Home() {
       }
     });
 
-    // We set the video duration to exactly "1" (which means 100% of the scroll)
     tl.to(sequence, {
       frame: frameCount,
       snap: 'frame',
@@ -93,13 +98,12 @@ export default function Home() {
       onUpdate: requestRender 
     }, 0);
 
-    // Now the text is synced by PERCENTAGE of the video, so it matches perfectly every time
-    tl.to(text1Ref.current, { opacity: 0, duration: 0.1 }, 0.15) // Fades out at 15% of the video
-      .to(text2Ref.current, { opacity: 1, duration: 0.1 }, 0.3)  // Fades in at 30%
-      .to(text2Ref.current, { opacity: 0, duration: 0.1 }, 0.45) // Fades out at 45%
-      .to(text3Ref.current, { opacity: 1, duration: 0.1 }, 0.6)  // Fades in at 60%
-      .to(text3Ref.current, { opacity: 0, duration: 0.1 }, 0.75) // Fades out at 75%
-      .to(text4Ref.current, { opacity: 1, duration: 0.1 }, 0.85); // Fades in at 85% and stays
+    tl.to(text1Ref.current, { opacity: 0, duration: 0.1 }, 0.15) 
+      .to(text2Ref.current, { opacity: 1, duration: 0.1 }, 0.3)  
+      .to(text2Ref.current, { opacity: 0, duration: 0.1 }, 0.45) 
+      .to(text3Ref.current, { opacity: 1, duration: 0.1 }, 0.6)  
+      .to(text3Ref.current, { opacity: 0, duration: 0.1 }, 0.75) 
+      .to(text4Ref.current, { opacity: 1, duration: 0.1 }, 0.85); 
 
     window.addEventListener('resize', handleResize);
 
@@ -113,24 +117,19 @@ export default function Home() {
   return (
     <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-        <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+        <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
         <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
 
-        {/* The Text Container: Perfectly centered, massive fonts on all 3 devices */}
         <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
-          
           <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-100">
             Pure Origins.
           </h1>
-          
           <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
             Precision Packed.
           </h1>
-          
           <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
             Flawless Yield.
           </h1>
-          
           <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
             <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
               The New Standard.
@@ -141,7 +140,6 @@ export default function Home() {
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </main>
