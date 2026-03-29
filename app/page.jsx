@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 
-// Turn the scroll engine back on
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
@@ -16,7 +15,6 @@ export default function Home() {
   const text3Ref = useRef(null);
   const text4Ref = useRef(null);
 
-  // Set to 60 so you can actually see movement without crashing your PC!
   const frameCount = 156; 
   
   const currentFrame = (index) => {
@@ -35,6 +33,7 @@ export default function Home() {
 
     const images = [];
     const sequence = { frame: 1 }; 
+    let renderRequested = false; // The new throttle switch
 
     for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
@@ -45,6 +44,7 @@ export default function Home() {
     images[0].onload = () => render(1);
 
     function render(index) {
+      renderRequested = false; // Reset the throttle
       if (!images[index - 1]) return;
       const img = images[index - 1];
       
@@ -59,22 +59,29 @@ export default function Home() {
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     }
 
-        let tl = gsap.timeline({
+    // This ensures the browser only draws when it has the power to do so
+    function requestRender() {
+      if (!renderRequested) {
+        renderRequested = true;
+        window.requestAnimationFrame(() => render(sequence.frame));
+      }
+    }
+
+    let tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         pin: true, 
         start: 'top top',
-        end: '+=800%', // Makes the scroll area even longer so the video plays slower
-        scrub: 1.5,    // The Apple magic: adds a 1.5-second smoothing glide to the mouse wheel
+        end: '+=800%', 
+        scrub: 1.5, 
       }
     });
-
 
     tl.to(sequence, {
       frame: frameCount,
       snap: 'frame',
       ease: 'none',
-      onUpdate: () => render(sequence.frame)
+      onUpdate: requestRender // We use the throttle here instead of drawing directly
     }, 0);
 
     tl.to(text1Ref.current, { opacity: 0, duration: 0.5 }, 0.2) 
@@ -94,7 +101,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('resize', handleResize);
       tl.kill(); 
-      ScrollTrigger.getAll().forEach(t => t.kill()); // Cleans up the scroll lock
+      ScrollTrigger.getAll().forEach(t => t.kill());
     };
   }, []);
 
