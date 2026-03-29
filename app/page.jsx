@@ -162,13 +162,13 @@ export default function Home() {
             <img 
               src="/logo.png" 
               alt="The Fruit House" 
-              className="w-32 md:w-48 h-auto object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              className="w-16 md:w-24 h-auto object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
               onError={(e) => {
-                // If logo.png is missing, hide the broken image and show the text fallback!
                 e.target.style.display = 'none';
                 document.getElementById('text-fallback').style.display = 'block';
               }}
             />
+
             
             {/* The Text Fallback (Only shows if image is missing) */}
             <h1 
