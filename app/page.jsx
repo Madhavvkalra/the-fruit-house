@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+// NEW: Import the premium Gen-Z font built right into Next.js
+import { Syne } from 'next/font/google'; 
+
+// Initialize the font to use its heaviest weights for maximum impact
+const syneFont = Syne({ subsets: ['latin'], weight: ['700', '800'] });
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -34,6 +39,10 @@ export default function Home() {
       
       const timer2 = setTimeout(() => {
         setHideLoader(true); 
+        
+        // NEW: The cinematic fade-in! 
+        // Once the loader vanishes, this elegantly reveals the first text.
+        gsap.to(text1Ref.current, { opacity: 1, duration: 1.5, ease: "power2.out" });
       }, 1400); 
 
       return () => {
@@ -128,6 +137,7 @@ export default function Home() {
       onUpdate: requestRender 
     }, 0);
 
+    // Note: text1Ref now handles its own fade-in, but this timeline will still fade it out when you scroll!
     tl.to(text1Ref.current, { opacity: 0, duration: 0.1 }, 0.15) 
       .to(text2Ref.current, { opacity: 1, duration: 0.1 }, 0.3)  
       .to(text2Ref.current, { opacity: 0, duration: 0.1 }, 0.45) 
@@ -146,17 +156,16 @@ export default function Home() {
 
   return (
     <>
-      {/* --- THE PRELOADER --- */}
+      {/* --- THE PRELOADER SCREEN --- */}
       {!hideLoader && (
         <div 
           className={`fixed top-0 left-0 w-screen h-screen z-[9999] flex flex-col items-center justify-center bg-black transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
             isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          {/* THE FIX: Added opacity-0 to this inner div so the logo fades out while it zooms! */}
           <div 
-            className={`flex flex-col items-center justify-center transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] w-full max-w-lg px-4 ${
-              isLoading ? 'scale-100 opacity-100' : 'scale-[20] opacity-0'
+            className={`flex flex-col items-center justify-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] w-full max-w-lg px-4 ${
+              isLoading ? 'scale-100' : 'scale-[20]'
             }`}
           >
             <img 
@@ -173,44 +182,52 @@ export default function Home() {
             <h1 
               id="text-fallback" 
               style={{ display: 'none' }} 
-              className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-8 text-center"
+              className={`${syneFont.className} text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-8 text-center`}
             >
               The Fruit House
             </h1>
             
-            <div className="text-white/60 font-bold text-xl md:text-3xl tracking-widest text-center">
+            {/* Added the Gen-Z font to the numbers too! */}
+            <div className={`${syneFont.className} text-white/60 font-extrabold text-xl md:text-3xl tracking-widest text-center`}>
               {progress}%
             </div>
           </div>
         </div>
       )}
 
-      {/* --- THE MAIN WEBSITE (GENZ EDITION) --- */}
-      <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
+      {/* --- THE MAIN WEBSITE --- */}
+      {/* Added the syneFont.className to the main container so all text inherits the new aesthetic */}
+      <main ref={containerRef} className={`relative h-screen bg-black overflow-hidden ${syneFont.className}`}>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
-          <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
 
           <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
-            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-100">
-              God Tier Fresh.
+            
+            {/* CRITICAL CHANGE: opacity-0 ensures it is completely hidden until the GSAP command fades it in! */}
+            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+              Pure Origins.
             </h1>
-            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
-              Zero Misses.
+            
+            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+              Precision Packed.
             </h1>
-            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
-              Always Locked In.
+            
+            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+              Flawless Yield.
             </h1>
+            
             <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
-              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
-                The New Meta.
+              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-extrabold text-white tracking-tight uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+                The New Standard.
               </h1>
               <div className="pointer-events-auto mt-8 md:mt-12">
                 <button className="text-sm md:text-lg font-bold tracking-widest uppercase border-2 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
-                  Tap In
+                  Partner With Us
                 </button>
               </div>
             </div>
+            
           </div>
         </div>
       </main>
