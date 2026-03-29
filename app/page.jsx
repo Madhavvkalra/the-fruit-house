@@ -43,11 +43,14 @@ export default function Home() {
     const sequence = { frame: 1 }; 
     let renderRequested = false; 
 
-    for (let i = 1; i <= frameCount; i++) {
+        for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
       img.src = currentFrame(i);
+      // This tells the GPU to fully decode the image into memory silently
+      img.decode().catch(() => {}); 
       images.push(img);
     }
+
 
     images[0].onload = () => render(1);
 
@@ -80,12 +83,12 @@ export default function Home() {
       }
     }
 
-    let tl = gsap.timeline({
+        let tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         pin: true, 
         start: 'top top',
-        end: '+=800%', 
+        end: '+=400%', // <-- This packs the frames tighter together
         scrub: 1.5, 
       }
     });
