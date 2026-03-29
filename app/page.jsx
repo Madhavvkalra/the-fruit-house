@@ -59,15 +59,16 @@ export default function Home() {
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     }
 
-    let tl = gsap.timeline({
+        let tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
-        pin: true, // THIS IS THE MAGIC TRICK! It locks the screen in place.
+        pin: true, 
         start: 'top top',
-        end: '+=400%', // Gives you a nice long scroll distance to play the video
-        scrub: 0.5, 
+        end: '+=800%', // Makes the scroll area even longer so the video plays slower
+        scrub: 1.5,    // The Apple magic: adds a 1.5-second smoothing glide to the mouse wheel
       }
     });
+
 
     tl.to(sequence, {
       frame: frameCount,
