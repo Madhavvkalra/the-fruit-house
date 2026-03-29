@@ -47,14 +47,18 @@ export default function Home() {
     let renderRequested = false; 
     let loadedCount = 0; // Tracks exactly how many images are ready
 
-        for (let i = 1; i <= frameCount; i++) {
+            for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
       img.src = currentFrame(i);
       
-      // We moved the completion check into its own tiny function so both success and failure can use it
       const handleImageLoadOrError = () => {
         loadedCount++;
         setProgress(Math.round((loadedCount / frameCount) * 100));
+        
+        // Fix: Render the very first frame safely without breaking the counter!
+        if (i === 1) {
+          render(1);
+        }
         
         if (loadedCount === frameCount) {
           setTimeout(() => {
@@ -66,10 +70,8 @@ export default function Home() {
         }
       };
 
-      // If it loads perfectly, count it!
       img.onload = handleImageLoadOrError;
 
-      // NEW: If the image is missing or broken, print a warning in the console but KEEP GOING!
       img.onerror = () => {
         console.warn(`Warning: Frame ${i} failed to load. Check the file name!`);
         handleImageLoadOrError(); 
@@ -78,6 +80,8 @@ export default function Home() {
       img.decode().catch(() => {}); 
       images.push(img);
     }
+    
+    // Make sure the old 'images[0].onload = () => render(1);' is DELETED from here!
 
     images[0].onload = () => render(1);
 
