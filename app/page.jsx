@@ -7,7 +7,6 @@ import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
-  // --- NEW: Loader States ---
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hideLoader, setHideLoader] = useState(false);
@@ -27,6 +26,24 @@ export default function Home() {
     return `/sequence/ezgif-frame-${paddedIndex}.webp`;
   };
 
+  // NEW: The "Watcher". This guarantees the loader dies the absolute second it hits 100
+  useEffect(() => {
+    if (progress === 100) {
+      const timer1 = setTimeout(() => {
+        setIsLoading(false); // Triggers the zoom out
+      }, 400); // Hold at 100% for a split second
+      
+      const timer2 = setTimeout(() => {
+        setHideLoader(true); // Deletes it from the website
+      }, 1400); // Wait for the zoom animation to finish
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [progress]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -45,45 +62,34 @@ export default function Home() {
     const images = [];
     const sequence = { frame: 1 }; 
     let renderRequested = false; 
-    let loadedCount = 0; // Tracks exactly how many images are ready
+    let loadedCount = 0; 
 
-            for (let i = 1; i <= frameCount; i++) {
+    for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
-      img.src = currentFrame(i);
       
+      // CRITICAL FIX: We tell the code what to do BEFORE we give it the image
       const handleImageLoadOrError = () => {
         loadedCount++;
-        setProgress(Math.round((loadedCount / frameCount) * 100));
+        // Use Math.floor so it only hits 100 when it is truly finished
+        setProgress(Math.floor((loadedCount / frameCount) * 100)); 
         
-        // Fix: Render the very first frame safely without breaking the counter!
         if (i === 1) {
           render(1);
-        }
-        
-        if (loadedCount === frameCount) {
-          setTimeout(() => {
-            setIsLoading(false); 
-            setTimeout(() => {
-              setHideLoader(true); 
-            }, 1000); 
-          }, 400); 
         }
       };
 
       img.onload = handleImageLoadOrError;
-
+      
       img.onerror = () => {
-        console.warn(`Warning: Frame ${i} failed to load. Check the file name!`);
-        handleImageLoadOrError(); 
+        console.warn(`Frame ${i} missing, but we are skipping it!`);
+        handleImageLoadOrError();
       };
 
+      // NOW we give it the image, so it is impossible to skip our rules
+      img.src = currentFrame(i);
       img.decode().catch(() => {}); 
       images.push(img);
     }
-    
-    // Make sure the old 'images[0].onload = () => render(1);' is DELETED from here!
-
-    images[0].onload = () => render(1);
 
     function render(index) {
       renderRequested = false; 
@@ -154,13 +160,11 @@ export default function Home() {
             isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          {/* This inner div handles the massive zoom effect */}
           <div 
             className={`flex flex-col items-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
               isLoading ? 'scale-100' : 'scale-[15]'
             }`}
           >
-            {/* I used text here, but you can swap this <h1> for an actual <img src="/logo.png" /> later! */}
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
               The Fruit House
             </h1>
