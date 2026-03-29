@@ -3,10 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
-// NEW: Import Archivo Black from Google Fonts
 import { Archivo_Black } from 'next/font/google'; 
 
-// Initialize Archivo Black (It is naturally ultra-bold, so it only uses weight '400')
 const archivoBlack = Archivo_Black({ subsets: ['latin'], weight: '400' });
 
 gsap.registerPlugin(ScrollTrigger);
@@ -39,8 +37,6 @@ export default function Home() {
       
       const timer2 = setTimeout(() => {
         setHideLoader(true); 
-        
-        // The cinematic fade-in for the massive Archivo text
         gsap.to(text1Ref.current, { opacity: 1, duration: 1.5, ease: "power2.out" });
       }, 1400); 
 
@@ -77,7 +73,14 @@ export default function Home() {
       const handleImageLoadOrError = () => {
         loadedCount++;
         setProgress(Math.floor((loadedCount / frameCount) * 100)); 
+        
+        // THE FIX 1: Force it to draw the first frame immediately!
         if (i === 1) render(1);
+        
+        // THE FIX 2: Force a final "paint" the exact second all 156 images are locked and loaded!
+        if (loadedCount === frameCount) {
+          render(1);
+        }
       };
 
       img.onload = handleImageLoadOrError;
@@ -143,6 +146,9 @@ export default function Home() {
       .to(text3Ref.current, { opacity: 0, duration: 0.1 }, 0.75) 
       .to(text4Ref.current, { opacity: 1, duration: 0.1 }, 0.85); 
 
+    // THE FIX 3: Wake up the engine right away! Don't wait for the scroll wheel!
+    requestRender();
+
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -154,7 +160,6 @@ export default function Home() {
 
   return (
     <>
-      {/* --- THE PRELOADER SCREEN --- */}
       {!hideLoader && (
         <div 
           className={`fixed top-0 left-0 w-screen h-screen z-[9999] flex flex-col items-center justify-center bg-black transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
@@ -192,8 +197,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- THE MAIN WEBSITE --- */}
-      {/* Applied Archivo Black to the entire main section */}
       <main ref={containerRef} className={`relative h-screen bg-black overflow-hidden ${archivoBlack.className}`}>
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
