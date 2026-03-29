@@ -2,9 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
   const containerRef = useRef(null);
@@ -15,6 +12,7 @@ export default function Home() {
   const text3Ref = useRef(null);
   const text4Ref = useRef(null);
 
+  // Set this back to 156 when you are ready for the full premium video!
   const frameCount = 10; 
   
   const currentFrame = (index) => {
@@ -57,28 +55,24 @@ export default function Home() {
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     }
 
-    let tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: 0.5, 
-      }
-    });
+    // This creates an automatic timeline that plays over 5 seconds
+    let tl = gsap.timeline();
 
     tl.to(sequence, {
       frame: frameCount,
       snap: 'frame',
       ease: 'none',
+      duration: 5, // This makes the video last exactly 5 seconds
       onUpdate: () => render(sequence.frame)
     }, 0);
 
-    tl.to(text1Ref.current, { opacity: 0, duration: 0.5 }, 0.5) 
-      .to(text2Ref.current, { opacity: 1, duration: 0.5 }, 0.5)
-      .to(text2Ref.current, { opacity: 0, duration: 0.5 }, 1.5)
-      .to(text3Ref.current, { opacity: 1, duration: 0.5 }, 1.5)
-      .to(text3Ref.current, { opacity: 0, duration: 0.5 }, 2.5)
-      .to(text4Ref.current, { opacity: 1, duration: 0.5 }, 2.5);
+    // This times the text fades perfectly with the 5-second video
+    tl.to(text1Ref.current, { opacity: 0, duration: 0.5 }, 1) 
+      .to(text2Ref.current, { opacity: 1, duration: 0.5 }, 1.5)
+      .to(text2Ref.current, { opacity: 0, duration: 0.5 }, 2.5)
+      .to(text3Ref.current, { opacity: 1, duration: 0.5 }, 3)
+      .to(text3Ref.current, { opacity: 0, duration: 0.5 }, 4)
+      .to(text4Ref.current, { opacity: 1, duration: 0.5 }, 4.5);
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
@@ -94,8 +88,9 @@ export default function Home() {
   }, []);
 
   return (
-    <main ref={containerRef} className="relative h-[400vh] bg-black">
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
+    // Changed from h-[400vh] to h-screen so it locks beautifully on the display
+    <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
+      <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <canvas ref={canvasRef} className="absolute inset-0 z-0" />
         <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
 
