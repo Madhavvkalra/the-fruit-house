@@ -146,23 +146,22 @@ export default function Home() {
 
   return (
     <>
-      {/* --- THE BULLETPROOF PRELOADER --- */}
+      {/* --- THE PRELOADER --- */}
       {!hideLoader && (
         <div 
           className={`fixed top-0 left-0 w-screen h-screen z-[9999] flex flex-col items-center justify-center bg-black transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
             isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
+          {/* THE FIX: Added opacity-0 to this inner div so the logo fades out while it zooms! */}
           <div 
-            className={`flex flex-col items-center justify-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] w-full max-w-lg px-4 ${
-              isLoading ? 'scale-100' : 'scale-[20]'
+            className={`flex flex-col items-center justify-center transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] w-full max-w-lg px-4 ${
+              isLoading ? 'scale-100 opacity-100' : 'scale-[20] opacity-0'
             }`}
           >
-            {/* The Logo Image */}
             <img 
               src="/logo.png" 
               alt="The Fruit House" 
-              // THIS IS THE NUCLEAR OPTION: It forces the logo to be exactly 120 pixels wide, no matter what.
               style={{ width: '120px', height: 'auto', display: 'block', margin: '0 auto' }} 
               className="object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
               onError={(e) => {
@@ -171,7 +170,6 @@ export default function Home() {
               }}
             />
             
-            {/* The Text Fallback (Only shows if image is missing) */}
             <h1 
               id="text-fallback" 
               style={{ display: 'none' }} 
@@ -187,29 +185,29 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- THE MAIN WEBSITE --- */}
+      {/* --- THE MAIN WEBSITE (GENZ EDITION) --- */}
       <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
-          <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none"></div>
 
           <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
             <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-100">
-              Pure Origins.
+              God Tier Fresh.
             </h1>
             <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
-              Precision Packed.
+              Zero Misses.
             </h1>
             <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
-              Flawless Yield.
+              Always Locked In.
             </h1>
             <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
               <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
-                The New Standard.
+                The New Meta.
               </h1>
               <div className="pointer-events-auto mt-8 md:mt-12">
                 <button className="text-sm md:text-lg font-bold tracking-widest uppercase border-2 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
-                  Partner With Us
+                  Tap In
                 </button>
               </div>
             </div>
