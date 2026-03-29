@@ -37,7 +37,7 @@ export default function Home() {
       
       const timer2 = setTimeout(() => {
         setHideLoader(true); 
-        gsap.to(text1Ref.current, { opacity: 1, duration: 1.5, ease: "power2.out" });
+        // We removed the GSAP fade-in here. The loader fading out naturally reveals the text!
       }, 1400); 
 
       return () => {
@@ -74,10 +74,8 @@ export default function Home() {
         loadedCount++;
         setProgress(Math.floor((loadedCount / frameCount) * 100)); 
         
-        // THE FIX 1: Force it to draw the first frame immediately!
         if (i === 1) render(1);
         
-        // THE FIX 2: Force a final "paint" the exact second all 156 images are locked and loaded!
         if (loadedCount === frameCount) {
           render(1);
         }
@@ -146,7 +144,6 @@ export default function Home() {
       .to(text3Ref.current, { opacity: 0, duration: 0.1 }, 0.75) 
       .to(text4Ref.current, { opacity: 1, duration: 0.1 }, 0.85); 
 
-    // THE FIX 3: Wake up the engine right away! Don't wait for the scroll wheel!
     requestRender();
 
     window.addEventListener('resize', handleResize);
@@ -204,20 +201,21 @@ export default function Home() {
 
           <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
             
-            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+            {/* FIXED: Starts at opacity-100 so GSAP remembers its base state! Shadow offset removed. */}
+            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_0_20px_rgba(0,0,0,1)] opacity-100">
               Pure Origins.
             </h1>
             
-            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_0_20px_rgba(0,0,0,1)] opacity-0">
               Precision Packed.
             </h1>
             
-            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_0_20px_rgba(0,0,0,1)] opacity-0">
               Flawless Yield.
             </h1>
             
             <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
-              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] text-white uppercase drop-shadow-[0_0_20px_rgba(0,0,0,1)]">
                 The New Standard.
               </h1>
               <div className="pointer-events-auto mt-8 md:mt-12">
