@@ -162,7 +162,7 @@ export default function Home() {
             <img 
               src="/logo.png" 
               alt="The Fruit House" 
-              className="w-48 md:w-72 h-auto object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              className="w-32 md:w-48 h-auto object-contain mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
               onError={(e) => {
                 // If logo.png is missing, hide the broken image and show the text fallback!
                 e.target.style.display = 'none';
