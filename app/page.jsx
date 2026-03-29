@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
+  // --- NEW: Loader States ---
+  const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hideLoader, setHideLoader] = useState(false);
+
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -26,8 +31,6 @@ export default function Home() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // HARDWARE HACK: alpha: false removes background transparency math. 
-    // desynchronized: true pushes images to the screen bypassing the main thread queue.
     const context = canvas.getContext('2d', { alpha: false, desynchronized: true });
     
     const handleResize = () => {
@@ -42,22 +45,37 @@ export default function Home() {
     const images = [];
     const sequence = { frame: 1 }; 
     let renderRequested = false; 
+    let loadedCount = 0; // Tracks exactly how many images are ready
 
-        for (let i = 1; i <= frameCount; i++) {
+    for (let i = 1; i <= frameCount; i++) {
       const img = new Image();
       img.src = currentFrame(i);
-      // This tells the GPU to fully decode the image into memory silently
+      
+      // --- NEW: Real-time Loading Logic ---
+      img.onload = () => {
+        loadedCount++;
+        // Calculate the true percentage of loaded frames
+        setProgress(Math.round((loadedCount / frameCount) * 100));
+        
+        // Once all 156 frames are officially in the GPU:
+        if (loadedCount === frameCount) {
+          setTimeout(() => {
+            setIsLoading(false); // Triggers the massive zoom-out animation
+            setTimeout(() => {
+              setHideLoader(true); // Removes the loader from the website completely
+            }, 1000); // Waits 1 second for the zoom animation to finish
+          }, 400); // Holds at 100% for a split second so the user registers it
+        }
+      };
+
       img.decode().catch(() => {}); 
       images.push(img);
     }
-
 
     images[0].onload = () => render(1);
 
     function render(index) {
       renderRequested = false; 
-      
-      // MATH HACK: Force the index to be a perfect whole number (no decimals like 45.7)
       const exactFrame = Math.round(index);
       
       if (!images[exactFrame - 1]) return;
@@ -70,7 +88,6 @@ export default function Home() {
       const centerShift_x = (canvas.width - img.width * ratio) / 2;
       const centerShift_y = (canvas.height - img.height * ratio) / 2;
       
-      // Because we set alpha: false, we can skip clearRect and just paint black!
       context.fillStyle = "black";
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
@@ -83,12 +100,12 @@ export default function Home() {
       }
     }
 
-        let tl = gsap.timeline({
+    let tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         pin: true, 
         start: 'top top',
-        end: '+=400%', // <-- This packs the frames tighter together
+        end: '+=400%', 
         scrub: 1.5, 
       }
     });
@@ -118,33 +135,60 @@ export default function Home() {
   }, []);
 
   return (
-    <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
-      <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-        <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
-        <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
-
-        <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
-          <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-100">
-            Pure Origins.
-          </h1>
-          <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
-            Precision Packed.
-          </h1>
-          <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
-            Flawless Yield.
-          </h1>
-          <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
-            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
-              The New Standard.
+    <>
+      {/* --- THE PRELOADER SCREEN --- */}
+      {!hideLoader && (
+        <div 
+          className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-all duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
+            isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          {/* This inner div handles the massive zoom effect */}
+          <div 
+            className={`flex flex-col items-center transition-transform duration-1000 ease-[cubic-bezier(0.87,0,0.13,1)] ${
+              isLoading ? 'scale-100' : 'scale-[15]'
+            }`}
+          >
+            {/* I used text here, but you can swap this <h1> for an actual <img src="/logo.png" /> later! */}
+            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+              The Fruit House
             </h1>
-            <div className="pointer-events-auto mt-8 md:mt-12">
-              <button className="text-sm md:text-lg font-bold tracking-widest uppercase border-2 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
-                Partner With Us
-              </button>
+            <div className="text-white/60 font-bold text-xl md:text-2xl tracking-widest">
+              {progress}%
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      )}
+
+      {/* --- THE MAIN WEBSITE --- */}
+      <main ref={containerRef} className="relative h-screen bg-black overflow-hidden">
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+          <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'transform' }} />
+          <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none"></div>
+
+          <div className="relative z-20 w-full h-full flex items-center justify-center text-center px-4">
+            <h1 ref={text1Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-100">
+              Pure Origins.
+            </h1>
+            <h1 ref={text2Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+              Precision Packed.
+            </h1>
+            <h1 ref={text3Ref} className="absolute w-full text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] opacity-0">
+              Flawless Yield.
+            </h1>
+            <div ref={text4Ref} className="absolute w-full flex flex-col items-center justify-center opacity-0 pointer-events-none">
+              <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black text-white tracking-tighter uppercase drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
+                The New Standard.
+              </h1>
+              <div className="pointer-events-auto mt-8 md:mt-12">
+                <button className="text-sm md:text-lg font-bold tracking-widest uppercase border-2 border-white text-white bg-black/20 backdrop-blur-sm px-8 py-4 hover:bg-white hover:text-black transition-colors duration-300">
+                  Partner With Us
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
   );
 }
