@@ -28,69 +28,6 @@ type Fruit = {
   varieties: Variety[]
 }
 
-  /*
-  =====================================
-  MOBILE FLOATING CARD POSITION
-  =====================================
-
-  Keeps the fruit card small and floating
-  near the fruit instead of becoming a
-  full-width bottom sheet.
-  */
-
-  const getMobileCardPosition = () => {
-    const hero = heroRef.current
-
-    if (!hero) {
-      return {
-        left: '50%',
-        top: '55%',
-        transform: 'translate(-50%, -50%)',
-      }
-    }
-
-    const rect = hero.getBoundingClientRect()
-
-    const cardWidth = 190
-    const horizontalPadding = 14
-
-    let left = cursor.x - cardWidth / 2
-
-    left = Math.max(
-      horizontalPadding,
-      Math.min(
-        left,
-        rect.width -
-          cardWidth -
-          horizontalPadding
-      )
-    )
-
-    /*
-      Normally sit above the fruit.
-      If the fruit is too high, move below it.
-    */
-
-    let top = cursor.y - 185
-
-    if (top < 105) {
-      top = cursor.y + 75
-    }
-
-    top = Math.max(
-      90,
-      Math.min(
-        top,
-        rect.height - 190
-      )
-    )
-
-    return {
-      left,
-      top,
-    }
-  }
-
 /*
   Coordinates are percentages of the ORIGINAL locked image.
 
@@ -1027,6 +964,69 @@ function App() {
         AUTO_RESUME_DELAY
       )
   }
+
+/*
+=====================================
+MOBILE FLOATING CARD POSITION
+=====================================
+
+Keeps the fruit card small and floating
+near the fruit instead of becoming a
+full-width bottom sheet.
+*/
+
+const getMobileCardPosition = () => {
+  const hero = heroRef.current
+
+  if (!hero) {
+    return {
+      left: '50%',
+      top: '55%',
+      transform: 'translate(-50%, -50%)',
+    }
+  }
+
+  const rect = hero.getBoundingClientRect()
+
+  const cardWidth = 190
+  const horizontalPadding = 14
+
+  let left = cursor.x - cardWidth / 2
+
+  left = Math.max(
+    horizontalPadding,
+    Math.min(
+      left,
+      rect.width -
+        cardWidth -
+        horizontalPadding
+    )
+  )
+
+  /*
+    Normally sit above the fruit.
+    If the fruit is too high, move below it.
+  */
+
+  let top = cursor.y - 185
+
+  if (top < 105) {
+    top = cursor.y + 75
+  }
+
+  top = Math.max(
+    90,
+    Math.min(
+      top,
+      rect.height - 190
+    )
+  )
+
+  return {
+    left,
+    top,
+  }
+}
 
   /*
   =====================================
