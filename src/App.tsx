@@ -28,6 +28,69 @@ type Fruit = {
   varieties: Variety[]
 }
 
+  /*
+  =====================================
+  MOBILE FLOATING CARD POSITION
+  =====================================
+
+  Keeps the fruit card small and floating
+  near the fruit instead of becoming a
+  full-width bottom sheet.
+  */
+
+  const getMobileCardPosition = () => {
+    const hero = heroRef.current
+
+    if (!hero) {
+      return {
+        left: '50%',
+        top: '55%',
+        transform: 'translate(-50%, -50%)',
+      }
+    }
+
+    const rect = hero.getBoundingClientRect()
+
+    const cardWidth = 190
+    const horizontalPadding = 14
+
+    let left = cursor.x - cardWidth / 2
+
+    left = Math.max(
+      horizontalPadding,
+      Math.min(
+        left,
+        rect.width -
+          cardWidth -
+          horizontalPadding
+      )
+    )
+
+    /*
+      Normally sit above the fruit.
+      If the fruit is too high, move below it.
+    */
+
+    let top = cursor.y - 185
+
+    if (top < 105) {
+      top = cursor.y + 75
+    }
+
+    top = Math.max(
+      90,
+      Math.min(
+        top,
+        rect.height - 190
+      )
+    )
+
+    return {
+      left,
+      top,
+    }
+  }
+
 /*
   Coordinates are percentages of the ORIGINAL locked image.
 
@@ -981,9 +1044,9 @@ function App() {
 
   const lensRadius =
     isSmallScreen
-      ? 105
+      ? 82
       : isTouchFirst
-      ? 145
+      ? 125
       : 180
 
   const lensDiameter =
@@ -1004,7 +1067,7 @@ function App() {
       : 0
 
   return (
-    <main className="min-h-screen bg-[#08150b]">
+    <main className="min-h-screen bg-[#F7F2E6]">
 
       {/* =================================
           NAVIGATION
@@ -1033,9 +1096,9 @@ function App() {
 
         {/* BRAND */}
 
-        <div className="flex items-center gap-2.5 text-white sm:gap-3">
+        <div className="flex items-center gap-2.5 text-[#123D2B] sm:gap-3">
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-xl sm:h-9 sm:w-9">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#176B45] text-[#F7F2E6] shadow-lg sm:h-9 sm:w-9">
             ✦
           </div>
 
@@ -1047,9 +1110,9 @@ function App() {
 
         {/* DESKTOP NAV */}
 
-        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/20 p-2 backdrop-blur-xl lg:flex">
+        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-[#176B45]/15 bg-[#F7F2E6]/85 p-2 backdrop-blur-xl lg:flex">
 
-          <button className="rounded-full bg-white px-5 py-2 text-sm font-medium text-[#17351d]">
+          <button className="rounded-full bg-[#176B45] px-5 py-2 text-sm font-medium text-[#F7F2E6]">
             Fruits
           </button>
 
@@ -1061,7 +1124,7 @@ function App() {
           ].map((item) => (
             <button
               key={item}
-              className="rounded-full px-5 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+              className="rounded-full px-5 py-2 text-sm font-medium text-[#123D2B]/70 transition hover:bg-[#176B45]/10 hover:text-[#176B45]"
             >
               {item}
             </button>
@@ -1082,7 +1145,7 @@ function App() {
         {/* TABLET / MOBILE MENU */}
 
         <button
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/10 text-white backdrop-blur-xl lg:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#176B45]/20 bg-[#F7F2E6]/80 text-[#176B45] shadow-lg backdrop-blur-xl lg:hidden"
           aria-label="Open menu"
         >
           <Menu size={22} />
@@ -1192,13 +1255,11 @@ function App() {
             DARK OVERLAYS
         ================================= */}
 
-        <div className="pointer-events-none absolute inset-0 z-10 bg-black/20" />
-
         <div
           className="pointer-events-none absolute inset-0 z-10"
           style={{
             background:
-              'linear-gradient(90deg, rgba(4,16,7,.58) 0%, rgba(4,16,7,.12) 46%, rgba(4,16,7,.04) 100%)',
+         'linear-gradient(180deg, rgba(15,81,53,.30) 0%, rgba(23,107,69,.04) 48%, rgba(15,81,53,.22) 100%)',
           }}
         />
 
@@ -1299,7 +1360,7 @@ function App() {
 
           </h1>
 
-          <p className="mt-5 max-w-[265px] text-[12px] leading-[1.7] text-white/65 sm:mt-7 sm:max-w-[310px] sm:text-sm sm:leading-7">
+          <p className="mt-5 max-w-[265px] text-[12px] leading-[1.7] text-[#F7F2E6]/80 sm:mt-7 sm:max-w-[310px] sm:text-sm sm:leading-7">
             Move across the harvest to uncover
             the freshness, varieties and origins
             behind every fruit.
@@ -1404,7 +1465,7 @@ function App() {
               }}
             >
 
-              <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#efffb0]/70">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#F7F2E6]">
                 Discover
               </p>
 
@@ -1460,123 +1521,116 @@ function App() {
           )}
 
         {/* =================================
-            TOUCH DEVICE FRUIT CARD
-        ================================= */}
+    FLOATING TOUCH DEVICE FRUIT CARD
+================================= */}
 
-        {activeFruit &&
-          showLens &&
-          isTouchFirst && (
-            <div
-              className="
-                pointer-events-none
-                absolute
-                bottom-0
-                left-0
-                right-0
-                z-[80]
-                px-3
-                sm:px-5
-              "
+{activeFruit &&
+  showLens &&
+  isTouchFirst && (
+    <div
+      className="
+        pointer-events-none
+        absolute
+        z-[80]
+        w-[190px]
+        sm:w-[215px]
+      "
+      style={getMobileCardPosition()}
+    >
+      <div
+        className="
+          rounded-[20px]
+          border
+          border-[#176B45]/20
+          bg-[#F7F2E6]/94
+          p-3.5
+          text-[#123D2B]
+          shadow-[0_18px_50px_rgba(15,81,53,.20)]
+          backdrop-blur-xl
+          sm:rounded-[23px]
+          sm:p-4
+        "
+      >
 
-              style={{
-                paddingBottom:
-                  'max(12px, env(safe-area-inset-bottom))',
-              }}
-            >
+        {/* CARD HEADER */}
 
+        <div className="flex items-start justify-between gap-2">
+
+          <div>
+
+            <p className="text-[7px] font-semibold uppercase tracking-[0.28em] text-[#176B45]/65">
+              Discover
+            </p>
+
+            <h2 className="font-playfair mt-1 text-[27px] leading-none italic text-[#123D2B] sm:text-[31px]">
+              {activeFruit.fruit}
+            </h2>
+
+          </div>
+
+          {autoRunning && (
+            <span className="mt-1 h-1.5 w-1.5 animate-pulse rounded-full bg-[#176B45]" />
+          )}
+
+        </div>
+
+        <div className="my-3 h-px bg-[#176B45]/12" />
+
+        {/* VARIETIES */}
+
+        <div className="flex flex-col gap-2">
+
+          {activeFruit.varieties.map(
+            (variety) => (
               <div
+                key={`${variety.name}-${variety.origin}`}
                 className="
-                  mx-auto
-                  max-w-[520px]
-                  rounded-[26px]
+                  rounded-[13px]
                   border
-                  border-white/15
-                  bg-[#071109]/90
-                  p-4
-                  text-white
-                  shadow-[0_-20px_60px_rgba(0,0,0,.35)]
-                  backdrop-blur-2xl
-                  sm:rounded-[30px]
-                  sm:p-5
+                  border-[#176B45]/10
+                  bg-[#FCFAF3]/80
+                  px-2.5
+                  py-2
                 "
               >
 
-                <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-white/20" />
+                <p className="text-[11px] font-medium text-[#123D2B]">
+                  {variety.name}
+                </p>
 
-                <div className="flex items-end justify-between gap-4">
+                <div className="mt-1 flex items-center gap-1 text-[8px] text-[#123D2B]/50">
 
-                  <div>
+                  <MapPin
+                    size={9}
+                  />
 
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.3em] text-[#efffb0]/70">
-                      Discover
-                    </p>
-
-                    <h2 className="font-playfair mt-1 text-[30px] leading-none italic sm:text-[36px]">
-                      {activeFruit.fruit}
-                    </h2>
-
-                  </div>
-
-                  {autoRunning && (
-                    <div className="mb-1 flex items-center gap-2">
-
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#efffb0]" />
-
-                      <span className="text-[7px] uppercase tracking-[0.22em] text-white/35">
-                        Exploring
-                      </span>
-
-                    </div>
-                  )}
-
-                </div>
-
-                <div className="my-3 h-px bg-white/10 sm:my-4" />
-
-                <div
-                  className={
-                    activeFruit.varieties
-                      .length > 1
-                      ? 'grid grid-cols-2 gap-2.5 sm:gap-3'
-                      : 'grid grid-cols-1 gap-2.5 sm:gap-3'
-                  }
-                >
-
-                  {activeFruit.varieties.map(
-                    (variety) => (
-                      <div
-                        key={`${variety.name}-${variety.origin}`}
-
-                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"
-                      >
-
-                        <p className="text-[12px] font-medium sm:text-[13px]">
-                          {variety.name}
-                        </p>
-
-                        <div className="mt-1.5 flex items-start gap-1.5 text-[9px] leading-4 text-white/45 sm:text-[10px]">
-
-                          <MapPin
-                            size={11}
-                            className="mt-[2px] shrink-0"
-                          />
-
-                          <span>
-                            {variety.origin}
-                          </span>
-
-                        </div>
-
-                      </div>
-                    )
-                  )}
+                  <span>
+                    {variety.origin}
+                  </span>
 
                 </div>
 
               </div>
-
-            </div>
+            )
           )}
+
+        </div>
+
+        {/* BRAND SIGNATURE */}
+
+        <div className="mt-3 flex items-center gap-1.5">
+
+          <span className="h-1 w-1 rounded-full bg-[#176B45]" />
+
+          <span className="text-[6px] uppercase tracking-[0.22em] text-[#123D2B]/40">
+            The Fruit House
+          </span>
+
+        </div>
+
+      </div>
+    </div>
+  )}
 
         {/* =================================
             DESKTOP INSTRUCTION
