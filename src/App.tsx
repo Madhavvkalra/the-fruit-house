@@ -712,6 +712,38 @@ const runAutoTourStep = () => {
   const lensDiameter =
     lensRadius * 2
 
+  /*
+  =====================================
+  AUTOMATIC FRUIT TOUR
+  =====================================
+  */
+
+  useEffect(() => {
+    const startTimer =
+      window.setTimeout(() => {
+        autoRunningRef.current = true
+        runAutoTourStep()
+      }, AUTO_START_DELAY)
+
+    return () => {
+      window.clearTimeout(startTimer)
+
+      autoRunningRef.current = false
+
+      if (autoTimerRef.current) {
+        window.clearTimeout(
+          autoTimerRef.current
+        )
+      }
+
+      if (autoAnimationRef.current) {
+        cancelAnimationFrame(
+          autoAnimationRef.current
+        )
+      }
+    }
+  }, [])
+
   return (
     <main className="min-h-screen bg-[#08150b]">
 
