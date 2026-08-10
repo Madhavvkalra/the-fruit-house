@@ -267,7 +267,7 @@ const cutImage = isMobile
        * closely so it doesn't feel laggy.
        */
 
-      const ease = isMobile ? 0.3 : 0.1
+      const ease = isMobile ? 0.55 : 0.22
 
       smoothPointer.current.x +=
         (rawPointer.current.x -
@@ -811,7 +811,7 @@ const cutImage = isMobile
           showLens &&
           !isMobile && (
             <div
-              className="pointer-events-none absolute z-[70] w-[300px] rounded-[28px] border border-white/20 bg-[#071109]/80 p-6 text-white shadow-2xl backdrop-blur-2xl"
+              className="pointer-events-none absolute z-[70] w-[220px] rounded-[28px] border border-white/20 bg-[#071109]/80 p-4 text-white shadow-2xl backdrop-blur-2xl"
               style={{
                 left:
                   cursor.x >
@@ -833,7 +833,7 @@ const cutImage = isMobile
                 Discover
               </p>
 
-              <h2 className="font-playfair mt-2 text-[42px] leading-none italic">
+              <h2 className="font-playfair mt-2 text-[30px] leading-none italic">
                 {activeFruit.fruit}
               </h2>
 
