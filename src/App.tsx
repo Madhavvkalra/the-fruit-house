@@ -17,6 +17,11 @@ const CUT_IMAGE_MOBILE = '/fruit-cut-mobile.png'
 const WHOLE_IMAGE_DESKTOP = '/fruit-whole-desktop.png'
 const CUT_IMAGE_DESKTOP = '/fruit-cut-desktop.png'
 
+const AUTO_START_DELAY = 1800
+const AUTO_HOLD_TIME = 1800
+const AUTO_TRAVEL_TIME = 900
+const AUTO_RESUME_DELAY = 4000
+
 type Variety = {
   name: string
   origin: string
@@ -195,6 +200,21 @@ function App() {
 
   const animationRef =
     useRef<number | null>(null)
+
+const autoTimerRef =
+  useRef<number | null>(null)
+
+const autoAnimationRef =
+  useRef<number | null>(null)
+
+const autoIndexRef =
+  useRef(0)
+
+const autoRunningRef =
+  useRef(false)
+
+const userControllingRef =
+  useRef(false)
 
   const [cursor, setCursor] = useState({
     x: -500,
@@ -378,6 +398,176 @@ const cutImage = isMobile
 
     setActiveFruit(detectedFruit)
   }
+
+/* =====================================
+   AUTO TOUR — FRUIT POSITION
+===================================== */
+
+const getFruitScreenPosition = (
+  fruit: Fruit
+) => {
+  const hero = heroRef.current
+  const image = imageRef.current
+
+  if (!hero || !image) return null
+
+  const rect =
+    hero.getBoundingClientRect()
+
+  const metrics =
+    getCoverMetrics(
+      rect.width,
+      rect.height,
+      image.naturalWidth || 1536,
+      image.naturalHeight || 1024
+    )
+
+  return {
+    x:
+      metrics.offsetX +
+      metrics.renderedWidth *
+        (fruit.x / 100),
+
+    y:
+      metrics.offsetY +
+      metrics.renderedHeight *
+        (fruit.y / 100),
+  }
+}
+
+
+/* =====================================
+   AUTO TOUR — MOVE LENS
+===================================== */
+
+const animateAutoTour = (
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+) => {
+  const start = performance.now()
+
+  const frame = (now: number) => {
+    if (
+      !autoRunningRef.current ||
+      userControllingRef.current
+    ) {
+      return
+    }
+
+    const progress = Math.min(
+      (now - start) /
+        AUTO_TRAVEL_TIME,
+      1
+    )
+
+    const eased =
+      progress < 0.5
+        ? 4 *
+          progress *
+          progress *
+          progress
+        : 1 -
+          Math.pow(
+            -2 * progress + 2,
+            3
+          ) /
+            2
+
+    const x =
+      from.x +
+      (to.x - from.x) * eased
+
+    const y =
+      from.y +
+      (to.y - from.y) * eased
+
+    rawPointer.current = {
+      x,
+      y,
+    }
+
+    smoothPointer.current = {
+      x,
+      y,
+    }
+
+    setCursor({
+      x,
+      y,
+    })
+
+    if (progress < 1) {
+      autoAnimationRef.current =
+        requestAnimationFrame(frame)
+    } else {
+      const fruit =
+        fruits[
+          autoIndexRef.current %
+            fruits.length
+        ]
+
+      setActiveFruit(fruit)
+
+      autoIndexRef.current =
+        (autoIndexRef.current + 1) %
+        fruits.length
+
+      autoTimerRef.current =
+        window.setTimeout(() => {
+          runAutoTourStep()
+        }, AUTO_HOLD_TIME)
+    }
+  }
+
+  autoAnimationRef.current =
+    requestAnimationFrame(frame)
+}
+
+
+/* =====================================
+   AUTO TOUR — NEXT FRUIT
+===================================== */
+
+const runAutoTourStep = () => {
+  if (
+    !autoRunningRef.current ||
+    userControllingRef.current
+  ) {
+    return
+  }
+
+  const fruit =
+    fruits[
+      autoIndexRef.current %
+        fruits.length
+    ]
+
+  const destination =
+    getFruitScreenPosition(fruit)
+
+  if (!destination) return
+
+  const hero =
+    heroRef.current
+
+  if (!hero) return
+
+  const rect =
+    hero.getBoundingClientRect()
+
+  const start =
+    cursor.x < 0
+      ? {
+          x: rect.width / 2,
+          y: rect.height * 0.55,
+        }
+      : cursor
+
+  animateAutoTour(
+    start,
+    destination
+  )
+}
 
   /*
   =====================================
