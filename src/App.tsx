@@ -4,15 +4,18 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { ArrowUpRight, MapPin, Menu } from 'lucide-react'
+import {
+  ArrowUpRight,
+  MapPin,
+  Menu,
+  X,
+} from 'lucide-react'
 
-const WHOLE_IMAGE = '/fruit-whole.png'
-const CUT_IMAGE = '/fruit-cut.png'
+const WHOLE_IMAGE_MOBILE = '/fruit-whole-mobile.png'
+const CUT_IMAGE_MOBILE = '/fruit-cut-mobile.png'
 
-const AUTO_START_DELAY = 1600
-const AUTO_HOLD_TIME = 2400
-const AUTO_TRAVEL_TIME = 1300
-const AUTO_RESUME_DELAY = 5000
+const WHOLE_IMAGE_DESKTOP = '/fruit-whole-desktop.png'
+const CUT_IMAGE_DESKTOP = '/fruit-cut-desktop.png'
 
 type Variety = {
   name: string
@@ -22,31 +25,39 @@ type Variety = {
 type Fruit = {
   id: string
   fruit: string
+
+  /*
+   * These coordinates are percentages of the ORIGINAL image,
+   * not percentages of the visible browser window.
+   */
   x: number
   y: number
+
   triggerRadius: number
   varieties: Variety[]
 }
 
-/*
-  Coordinates are percentages of the ORIGINAL locked image.
-
-  Final composition:
-  Grapes       ≈ 17%, 48%
-  Apple        ≈ 50%, 29%
-  Cherries     ≈ 43%, 63%
-  Avocado      ≈ 72%, 47%
-  Dragon Fruit ≈ 87%, 51%
-  Kiwi         ≈ 78%, 76%
-*/
-
 const fruits: Fruit[] = [
+  {
+    id: 'grapes',
+    fruit: 'Grapes',
+    x: 25,
+    y: 52,
+    triggerRadius: 15,
+    varieties: [
+      {
+        name: 'Shine Muscat',
+        origin: 'China',
+      },
+    ],
+  },
+
   {
     id: 'apple',
     fruit: 'Apple',
-    x: 50,
-    y: 29,
-    triggerRadius: 16,
+    x: 46,
+    y: 48,
+    triggerRadius: 17,
     varieties: [
       {
         name: 'Gala',
@@ -64,24 +75,10 @@ const fruits: Fruit[] = [
   },
 
   {
-    id: 'grapes',
-    fruit: 'Grapes',
-    x: 17,
-    y: 48,
-    triggerRadius: 15,
-    varieties: [
-      {
-        name: 'Shine Muscat',
-        origin: 'China',
-      },
-    ],
-  },
-
-  {
     id: 'cherries',
     fruit: 'Cherries',
-    x: 43,
-    y: 63,
+    x: 48,
+    y: 69,
     triggerRadius: 14,
     varieties: [
       {
@@ -98,8 +95,8 @@ const fruits: Fruit[] = [
   {
     id: 'avocado',
     fruit: 'Avocado',
-    x: 72,
-    y: 47,
+    x: 63,
+    y: 44,
     triggerRadius: 12,
     varieties: [
       {
@@ -112,8 +109,8 @@ const fruits: Fruit[] = [
   {
     id: 'dragonfruit',
     fruit: 'Dragon Fruit',
-    x: 87,
-    y: 51,
+    x: 79,
+    y: 55,
     triggerRadius: 12,
     varieties: [
       {
@@ -126,9 +123,9 @@ const fruits: Fruit[] = [
   {
     id: 'kiwi',
     fruit: 'Kiwi',
-    x: 78,
-    y: 76,
-    triggerRadius: 13,
+    x: 64,
+    y: 74,
+    triggerRadius: 12,
     varieties: [
       {
         name: 'Green Kiwi',
@@ -138,11 +135,6 @@ const fruits: Fruit[] = [
   },
 ]
 
-type Point = {
-  x: number
-  y: number
-}
-
 type ImageMetrics = {
   renderedWidth: number
   renderedHeight: number
@@ -151,12 +143,15 @@ type ImageMetrics = {
 }
 
 /*
-  Reproduces object-fit: cover mathematically.
-
-  This lets fruit coordinates remain accurate even when
-  phones/tablets crop the image.
-*/
-
+ * Calculates exactly how an image behaves when using:
+ *
+ * width: 100%
+ * height: 100%
+ * object-fit: cover
+ * object-position: center
+ *
+ * This is important because mobile screens crop the hero image.
+ */
 function getCoverMetrics(
   containerWidth: number,
   containerHeight: number,
@@ -174,10 +169,8 @@ function getCoverMetrics(
   return {
     renderedWidth,
     renderedHeight,
-
     offsetX:
       (containerWidth - renderedWidth) / 2,
-
     offsetY:
       (containerHeight - renderedHeight) / 2,
   }
@@ -190,12 +183,12 @@ function App() {
   const imageRef =
     useRef<HTMLImageElement | null>(null)
 
-  const rawPointer = useRef<Point>({
+  const rawPointer = useRef({
     x: -500,
     y: -500,
   })
 
-  const smoothPointer = useRef<Point>({
+  const smoothPointer = useRef({
     x: -500,
     y: -500,
   })
@@ -203,28 +196,10 @@ function App() {
   const animationRef =
     useRef<number | null>(null)
 
-  const autoTimerRef =
-    useRef<number | null>(null)
-
-  const resumeTimerRef =
-    useRef<number | null>(null)
-
-  const autoAnimationRef =
-    useRef<number | null>(null)
-
-  const autoIndexRef = useRef(0)
-
-  const autoRunningRef =
-    useRef(false)
-
-  const userControllingRef =
-    useRef(false)
-
-  const [cursor, setCursor] =
-    useState<Point>({
-      x: -500,
-      y: -500,
-    })
+  const [cursor, setCursor] = useState({
+    x: -500,
+    y: -500,
+  })
 
   const [insideHero, setInsideHero] =
     useState(false)
@@ -235,161 +210,99 @@ function App() {
   const [isTouching, setIsTouching] =
     useState(false)
 
-  const [isTouchFirst, setIsTouchFirst] =
+  const [isMobile, setIsMobile] =
     useState(false)
 
-  const [isSmallScreen, setIsSmallScreen] =
-    useState(false)
+const wholeImage = isMobile
+  ? WHOLE_IMAGE_MOBILE
+  : WHOLE_IMAGE_DESKTOP
 
-  const [autoRunning, setAutoRunning] =
-    useState(false)
-
-  const [imageLoaded, setImageLoaded] =
-    useState(false)
+const cutImage = isMobile
+  ? CUT_IMAGE_MOBILE
+  : CUT_IMAGE_DESKTOP
 
   /*
   =====================================
-  DEVICE CAPABILITIES
+  DETECT MOBILE / DESKTOP
   =====================================
   */
 
   useEffect(() => {
-    const updateDevice = () => {
-      const coarse =
+    const checkScreen = () => {
+      setIsMobile(
         window.matchMedia(
-          '(pointer: coarse)'
+          '(max-width: 767px)'
         ).matches
-
-      const hover =
-        window.matchMedia(
-          '(hover: hover)'
-        ).matches
-
-      /*
-        Touch-first:
-        phone/tablet primarily controlled by finger.
-
-        An iPad with a real mouse/trackpad can therefore
-        behave more like desktop when hover is available.
-      */
-
-      setIsTouchFirst(
-        coarse && !hover
-      )
-
-      setIsSmallScreen(
-        window.innerWidth < 768
       )
     }
 
-    updateDevice()
+    checkScreen()
 
     window.addEventListener(
       'resize',
-      updateDevice
+      checkScreen
     )
 
     return () => {
       window.removeEventListener(
         'resize',
-        updateDevice
+        checkScreen
       )
     }
   }, [])
 
   /*
   =====================================
-  REDUCED MOTION
+  SMOOTH POINTER
   =====================================
   */
 
-  const prefersReducedMotion = () =>
-    window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches
+  useEffect(() => {
+    const animate = () => {
+      /*
+       * Desktop gets the smooth trailing
+       * cursor.
+       *
+       * Mobile follows the finger more
+       * closely so it doesn't feel laggy.
+       */
 
-  /*
-  =====================================
-  IMAGE POSITION HELPERS
-  =====================================
-  */
+      const ease = isMobile ? 0.3 : 0.1
 
-  const getFruitScreenPosition = (
-    fruit: Fruit
-  ): Point | null => {
-    const hero = heroRef.current
-    const image = imageRef.current
+      smoothPointer.current.x +=
+        (rawPointer.current.x -
+          smoothPointer.current.x) *
+        ease
 
-    if (!hero || !image) {
-      return null
+      smoothPointer.current.y +=
+        (rawPointer.current.y -
+          smoothPointer.current.y) *
+        ease
+
+      setCursor({
+        x: smoothPointer.current.x,
+        y: smoothPointer.current.y,
+      })
+
+      animationRef.current =
+        requestAnimationFrame(animate)
     }
 
-    const rect =
-      hero.getBoundingClientRect()
+    animationRef.current =
+      requestAnimationFrame(animate)
 
-    const naturalWidth =
-      image.naturalWidth || 1400
-
-    const naturalHeight =
-      image.naturalHeight || 928
-
-    const metrics = getCoverMetrics(
-      rect.width,
-      rect.height,
-      naturalWidth,
-      naturalHeight
-    )
-
-    return {
-      x:
-        metrics.offsetX +
-        metrics.renderedWidth *
-          (fruit.x / 100),
-
-      y:
-        metrics.offsetY +
-        metrics.renderedHeight *
-          (fruit.y / 100),
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(
+          animationRef.current
+        )
+      }
     }
-  }
-
-  /*
-    Prevent automatic tour from targeting fruit
-    cropped outside the visible hero.
-  */
-
-  const isFruitVisible = (
-    fruit: Fruit
-  ) => {
-    const hero = heroRef.current
-
-    if (!hero) return false
-
-    const rect =
-      hero.getBoundingClientRect()
-
-    const position =
-      getFruitScreenPosition(fruit)
-
-    if (!position) return false
-
-    const safeMargin = isSmallScreen
-      ? 45
-      : 70
-
-    return (
-      position.x > safeMargin &&
-      position.x <
-        rect.width - safeMargin &&
-      position.y > 100 &&
-      position.y <
-        rect.height - safeMargin
-    )
-  }
+  }, [isMobile])
 
   /*
   =====================================
-  DETECT FRUIT UNDER MANUAL POINTER
+  DETECT WHICH FRUIT IS UNDER POINTER
   =====================================
   */
 
@@ -405,32 +318,42 @@ function App() {
     const rect =
       hero.getBoundingClientRect()
 
+    /*
+     * Actual dimensions of the source
+     * image.
+     */
+    const imageWidth =
+      image.naturalWidth || 1536
+
+    const imageHeight =
+      image.naturalHeight || 1024
+
     const metrics = getCoverMetrics(
       rect.width,
       rect.height,
-      image.naturalWidth || 1400,
-      image.naturalHeight || 928
+      imageWidth,
+      imageHeight
     )
 
-    const normalizedX =
+    /*
+     * Convert browser pointer position
+     * back into ORIGINAL IMAGE position.
+     */
+    const imageX =
       (localX - metrics.offsetX) /
       metrics.renderedWidth
 
-    const normalizedY =
+    const imageY =
       (localY - metrics.offsetY) /
       metrics.renderedHeight
 
-    const percentX =
-      normalizedX * 100
+    const percentX = imageX * 100
+    const percentY = imageY * 100
 
-    const percentY =
-      normalizedY * 100
-
-    let detected: Fruit | null =
+    let detectedFruit: Fruit | null =
       null
 
-    let closestDistance =
-      Infinity
+    let closestDistance = Infinity
 
     fruits.forEach((fruit) => {
       const dx =
@@ -439,379 +362,33 @@ function App() {
       const dy =
         percentY - fruit.y
 
-      const distance =
-        Math.sqrt(
-          dx * dx + dy * dy
-        )
+      const distance = Math.sqrt(
+        dx * dx + dy * dy
+      )
 
       if (
         distance <
           fruit.triggerRadius &&
-        distance <
-          closestDistance
+        distance < closestDistance
       ) {
-        closestDistance =
-          distance
-
-        detected = fruit
+        closestDistance = distance
+        detectedFruit = fruit
       }
     })
 
-    setActiveFruit(detected)
+    setActiveFruit(detectedFruit)
   }
 
   /*
   =====================================
-  DESKTOP SMOOTH CURSOR
+  POINTER POSITION
   =====================================
   */
 
-  useEffect(() => {
-    const animate = () => {
-      /*
-        During automatic tour we directly control
-        cursor position, so don't apply mouse easing.
-      */
-
-      if (
-        !autoRunningRef.current
-      ) {
-        const ease =
-          isTouchFirst ? 0.28 : 0.1
-
-        smoothPointer.current.x +=
-          (rawPointer.current.x -
-            smoothPointer.current.x) *
-          ease
-
-        smoothPointer.current.y +=
-          (rawPointer.current.y -
-            smoothPointer.current.y) *
-          ease
-
-        setCursor({
-          x:
-            smoothPointer.current.x,
-
-          y:
-            smoothPointer.current.y,
-        })
-      }
-
-      animationRef.current =
-        requestAnimationFrame(
-          animate
-        )
-    }
-
-    animationRef.current =
-      requestAnimationFrame(
-        animate
-      )
-
-    return () => {
-      if (
-        animationRef.current
-      ) {
-        cancelAnimationFrame(
-          animationRef.current
-        )
-      }
-    }
-  }, [isTouchFirst])
-
-  /*
-  =====================================
-  AUTO TOUR HELPERS
-  =====================================
-  */
-
-  const clearAutoTimers = () => {
-    if (autoTimerRef.current) {
-      window.clearTimeout(
-        autoTimerRef.current
-      )
-
-      autoTimerRef.current = null
-    }
-
-    if (autoAnimationRef.current) {
-      cancelAnimationFrame(
-        autoAnimationRef.current
-      )
-
-      autoAnimationRef.current =
-        null
-    }
-  }
-
-  const stopAutoTour = () => {
-    clearAutoTimers()
-
-    autoRunningRef.current =
-      false
-
-    setAutoRunning(false)
-  }
-
-  /*
-    Smoothly move spotlight between two points.
-  */
-
-  const animateSpotlight = (
-    from: Point,
-    to: Point,
-    duration: number,
-    onComplete: () => void
-  ) => {
-    const start =
-      performance.now()
-
-    const frame = (
-      now: number
-    ) => {
-      if (
-        !autoRunningRef.current
-      ) {
-        return
-      }
-
-      const progress =
-        Math.min(
-          (now - start) /
-            duration,
-          1
-        )
-
-      /*
-        Smooth premium easing:
-        cubic ease-in-out.
-      */
-
-      const eased =
-        progress < 0.5
-          ? 4 *
-            progress *
-            progress *
-            progress
-          : 1 -
-            Math.pow(
-              -2 * progress + 2,
-              3
-            ) /
-              2
-
-      const x =
-        from.x +
-        (to.x - from.x) *
-          eased
-
-      const y =
-        from.y +
-        (to.y - from.y) *
-          eased
-
-      setCursor({
-        x,
-        y,
-      })
-
-      if (progress < 1) {
-        autoAnimationRef.current =
-          requestAnimationFrame(
-            frame
-          )
-      } else {
-        autoAnimationRef.current =
-          null
-
-        onComplete()
-      }
-    }
-
-    autoAnimationRef.current =
-      requestAnimationFrame(frame)
-  }
-
-  /*
-  =====================================
-  RUN ONE AUTO TOUR STEP
-  =====================================
-  */
-
-  const runAutoStep = () => {
-    if (
-      !autoRunningRef.current ||
-      userControllingRef.current
-    ) {
-      return
-    }
-
-    /*
-      Only tour fruits that are actually
-      visible after responsive cropping.
-    */
-
-    const visibleFruits =
-      fruits.filter(
-        isFruitVisible
-      )
-
-    if (
-      visibleFruits.length === 0
-    ) {
-      return
-    }
-
-    const index =
-      autoIndexRef.current %
-      visibleFruits.length
-
-    const fruit =
-      visibleFruits[index]
-
-    const destination =
-      getFruitScreenPosition(
-        fruit
-      )
-
-    if (!destination) return
-
-    /*
-      If tour has just begun, start from
-      somewhere near the middle of hero.
-    */
-
-    let startPoint = cursor
-
-    if (
-      startPoint.x < 0 ||
-      startPoint.y < 0
-    ) {
-      const hero =
-        heroRef.current
-
-      if (!hero) return
-
-      const rect =
-        hero.getBoundingClientRect()
-
-      startPoint = {
-        x: rect.width / 2,
-        y:
-          rect.height *
-          0.55,
-      }
-    }
-
-    setActiveFruit(null)
-
-    animateSpotlight(
-      startPoint,
-      destination,
-      AUTO_TRAVEL_TIME,
-      () => {
-        if (
-          !autoRunningRef.current
-        ) {
-          return
-        }
-
-        setActiveFruit(fruit)
-
-        autoIndexRef.current =
-          (index + 1) %
-          visibleFruits.length
-
-        autoTimerRef.current =
-          window.setTimeout(
-            () => {
-              runAutoStep()
-            },
-            AUTO_HOLD_TIME
-          )
-      }
-    )
-  }
-
-  /*
-  =====================================
-  START AUTOMATIC TOUR
-  =====================================
-  */
-
-  const startAutoTour = (
-    delay = AUTO_START_DELAY
-  ) => {
-    /*
-      Auto tour is primarily for touch-first
-      devices where hover discovery doesn't exist.
-    */
-
-    if (
-      !isTouchFirst ||
-      !imageLoaded ||
-      prefersReducedMotion()
-    ) {
-      return
-    }
-
-    stopAutoTour()
-
-    autoTimerRef.current =
-      window.setTimeout(
-        () => {
-          if (
-            userControllingRef.current
-          ) {
-            return
-          }
-
-          autoRunningRef.current =
-            true
-
-          setAutoRunning(true)
-          setInsideHero(true)
-
-          runAutoStep()
-        },
-        delay
-      )
-  }
-
-  /*
-  =====================================
-  INITIAL AUTO TOUR
-  =====================================
-  */
-
-  useEffect(() => {
-    if (
-      isTouchFirst &&
-      imageLoaded
-    ) {
-      startAutoTour()
-    }
-
-    return () => {
-      clearAutoTimers()
-    }
-  }, [
-    isTouchFirst,
-    imageLoaded,
-  ])
-
-  /*
-  =====================================
-  MANUAL POINTER POSITION
-  =====================================
-  */
-
-  const updateManualPointer = (
+  const updatePointer = (
     event: ReactPointerEvent<HTMLElement>
   ) => {
-    const hero =
-      heroRef.current
+    const hero = heroRef.current
 
     if (!hero) return
 
@@ -819,35 +396,14 @@ function App() {
       hero.getBoundingClientRect()
 
     const x =
-      event.clientX -
-      rect.left
+      event.clientX - rect.left
 
     const y =
-      event.clientY -
-      rect.top
+      event.clientY - rect.top
 
     rawPointer.current = {
       x,
       y,
-    }
-
-    /*
-      Touch should respond immediately.
-    */
-
-    if (
-      event.pointerType !==
-      'mouse'
-    ) {
-      smoothPointer.current = {
-        x,
-        y,
-      }
-
-      setCursor({
-        x,
-        y,
-      })
     }
 
     detectFruit(x, y)
@@ -855,7 +411,7 @@ function App() {
 
   /*
   =====================================
-  MANUAL TAKEOVER
+  POINTER DOWN
   =====================================
   */
 
@@ -863,65 +419,58 @@ function App() {
     event: ReactPointerEvent<HTMLElement>
   ) => {
     /*
-      Mouse doesn't need click.
-    */
-
-    if (
-      event.pointerType ===
-      'mouse'
-    ) {
+     * Desktop doesn't need to click.
+     * Hover already works.
+     */
+    if (event.pointerType === 'mouse') {
       return
     }
-
-    userControllingRef.current =
-      true
-
-    stopAutoTour()
 
     setIsTouching(true)
     setInsideHero(true)
 
+    /*
+     * Capture the finger so dragging
+     * remains connected to the hero.
+     */
     event.currentTarget.setPointerCapture(
       event.pointerId
     )
 
-    updateManualPointer(event)
+    updatePointer(event)
   }
+
+  /*
+  =====================================
+  POINTER MOVE
+  =====================================
+  */
 
   const handlePointerMove = (
     event: ReactPointerEvent<HTMLElement>
   ) => {
     /*
-      Desktop mouse / trackpad
-    */
-
-    if (
-      event.pointerType ===
-      'mouse'
-    ) {
-      stopAutoTour()
-
+     * Mouse:
+     * always reveal while inside hero.
+     */
+    if (event.pointerType === 'mouse') {
       setInsideHero(true)
-
-      updateManualPointer(event)
-
+      updatePointer(event)
       return
     }
 
     /*
-      Finger / stylus
-    */
+     * Touch:
+     * reveal only while finger is down.
+     */
+    if (!isTouching) return
 
-    if (!isTouching) {
-      return
-    }
-
-    updateManualPointer(event)
+    updatePointer(event)
   }
 
   /*
   =====================================
-  TOUCH RELEASE + AUTO RESUME
+  POINTER RELEASE
   =====================================
   */
 
@@ -930,189 +479,77 @@ function App() {
   ) => {
     if (
       event &&
-      event.pointerType ===
-        'mouse'
+      event.pointerType === 'mouse'
     ) {
       return
     }
 
     setIsTouching(false)
+    setInsideHero(false)
+    setActiveFruit(null)
 
-    userControllingRef.current =
-      false
-
-    /*
-      Keep the current reveal visible briefly,
-      then automatic tour resumes.
-    */
-
-    if (
-      resumeTimerRef.current
-    ) {
-      window.clearTimeout(
-        resumeTimerRef.current
-      )
+    rawPointer.current = {
+      x: -500,
+      y: -500,
     }
 
-    resumeTimerRef.current =
-      window.setTimeout(
-        () => {
-          setActiveFruit(null)
-
-          startAutoTour(0)
-        },
-        AUTO_RESUME_DELAY
-      )
-  }
-
-/*
-=====================================
-MOBILE FLOATING CARD POSITION
-=====================================
-
-Keeps the fruit card small and floating
-near the fruit instead of becoming a
-full-width bottom sheet.
-*/
-
-const getMobileCardPosition = () => {
-  const hero = heroRef.current
-
-  if (!hero) {
-    return {
-      left: '50%',
-      top: '55%',
-      transform: 'translate(-50%, -50%)',
+    smoothPointer.current = {
+      x: -500,
+      y: -500,
     }
   }
 
-  const rect = hero.getBoundingClientRect()
-
-  const cardWidth = 190
-  const horizontalPadding = 14
-
-  let left = cursor.x - cardWidth / 2
-
-  left = Math.max(
-    horizontalPadding,
-    Math.min(
-      left,
-      rect.width -
-        cardWidth -
-        horizontalPadding
-    )
-  )
-
-  /*
-    Normally sit above the fruit.
-    If the fruit is too high, move below it.
-  */
-
-  let top = cursor.y - 185
-
-  if (top < 105) {
-    top = cursor.y + 75
-  }
-
-  top = Math.max(
-    90,
-    Math.min(
-      top,
-      rect.height - 190
-    )
-  )
-
-  return {
-    left,
-    top,
-  }
-}
-
   /*
   =====================================
-  VISUAL SETTINGS
+  SHOULD THE LENS BE VISIBLE?
   =====================================
   */
 
-  const showLens =
-    insideHero &&
-    (
-      !isTouchFirst ||
-      autoRunning ||
-      isTouching
-    )
+  const showLens = isMobile
+    ? isTouching
+    : insideHero
 
-  const lensRadius =
-    isSmallScreen
-      ? 82
-      : isTouchFirst
-      ? 125
-      : 180
+  /*
+  =====================================
+  RESPONSIVE LENS SIZE
+  =====================================
+  */
+
+  const lensRadius = isMobile
+    ? 115
+    : 180
 
   const lensDiameter =
     lensRadius * 2
 
-  /*
-    On touch devices, slightly lift the
-    visual ring so the user's finger
-    doesn't cover everything.
-
-    The automatic tour stays centered.
-  */
-
-  const ringYOffset =
-    isTouching &&
-    isSmallScreen
-      ? -45
-      : 0
-
   return (
-    <main className="min-h-screen bg-[#F7F2E6]">
+    <main className="min-h-screen bg-[#08150b]">
 
-      {/* =================================
+      {/* ==============================
           NAVIGATION
-      ================================= */}
+      ============================== */}
 
-      <nav
-        className="
-          fixed
-          left-0
-          right-0
-          top-0
-          z-[100]
-          flex
-          items-center
-          justify-between
-          p-4
-          sm:p-5
-          md:px-10
-          md:py-7
-        "
-        style={{
-          paddingTop:
-            'max(1rem, env(safe-area-inset-top))',
-        }}
-      >
+      <nav className="fixed left-0 right-0 top-0 z-[100] flex items-center justify-between p-5 md:px-10 md:py-7">
 
         {/* BRAND */}
 
-        <div className="flex items-center gap-2.5 text-[#123D2B] sm:gap-3">
+        <div className="flex items-center gap-3 text-white">
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#176B45] text-[#F7F2E6] shadow-lg sm:h-9 sm:w-9">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-xl">
             ✦
           </div>
 
-          <span className="font-playfair text-[19px] italic sm:text-2xl md:text-[27px]">
+          <span className="font-playfair text-xl italic sm:text-2xl md:text-[27px]">
             The Fruit House
           </span>
 
         </div>
 
-        {/* DESKTOP NAV */}
+        {/* DESKTOP MENU */}
 
-        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-[#176B45]/15 bg-[#F7F2E6]/85 p-2 backdrop-blur-xl lg:flex">
+        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/20 p-2 backdrop-blur-xl md:flex">
 
-          <button className="rounded-full bg-[#176B45] px-5 py-2 text-sm font-medium text-[#F7F2E6]">
+          <button className="rounded-full bg-white px-5 py-2 text-sm font-medium text-[#17351d]">
             Fruits
           </button>
 
@@ -1124,7 +561,7 @@ const getMobileCardPosition = () => {
           ].map((item) => (
             <button
               key={item}
-              className="rounded-full px-5 py-2 text-sm font-medium text-[#123D2B]/70 transition hover:bg-[#176B45]/10 hover:text-[#176B45]"
+              className="rounded-full px-5 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
             >
               {item}
             </button>
@@ -1134,7 +571,7 @@ const getMobileCardPosition = () => {
 
         {/* DESKTOP CTA */}
 
-        <button className="hidden items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-medium text-white backdrop-blur-xl transition hover:bg-white hover:text-[#17351d] lg:flex">
+        <button className="hidden items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-medium text-white backdrop-blur-xl transition hover:bg-white hover:text-[#17351d] md:flex">
 
           Explore Collection
 
@@ -1142,20 +579,17 @@ const getMobileCardPosition = () => {
 
         </button>
 
-        {/* TABLET / MOBILE MENU */}
+        {/* MOBILE MENU */}
 
-        <button
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-[#176B45]/20 bg-[#F7F2E6]/80 text-[#176B45] shadow-lg backdrop-blur-xl lg:hidden"
-          aria-label="Open menu"
-        >
-          <Menu size={22} />
+        <button className="text-white md:hidden">
+          <Menu size={27} />
         </button>
 
       </nav>
 
-      {/* =================================
+      {/* ==============================
           HERO
-      ================================= */}
+      ============================== */}
 
       <section
         ref={heroRef}
@@ -1192,113 +626,75 @@ const getMobileCardPosition = () => {
           ) {
             setInsideHero(false)
             setActiveFruit(null)
-
-            rawPointer.current = {
-              x: -500,
-              y: -500,
-            }
-
-            smoothPointer.current = {
-              x: -500,
-              y: -500,
-            }
           }
         }}
 
-        className="
-          relative
-          min-h-[600px]
-          overflow-hidden
-          bg-[#0b1b0e]
-          md:cursor-none
-        "
+        className="relative h-screen min-h-[650px] overflow-hidden bg-[#0b1b0e] md:cursor-none"
 
         style={{
           height: '100dvh',
 
           /*
-            Allows normal vertical scrolling on
-            phones/tablets.
-          */
+           * Allows normal vertical page
+           * scrolling on touch devices.
+           *
+           * Horizontal browser gestures
+           * are disabled over the hero.
+           */
           touchAction: 'pan-y',
         }}
       >
 
-        {/* =================================
-            WHOLE IMAGE
-        ================================= */}
+        {/* ============================
+            WHOLE FRUIT IMAGE
+        ============================ */}
 
         <img
           ref={imageRef}
-          src={WHOLE_IMAGE}
+         src={wholeImage}
+         
           alt="The Fruit House premium fruit collection"
-
-          onLoad={() =>
-            setImageLoaded(true)
-          }
-
           draggable={false}
-
-          className="
-            pointer-events-none
-            absolute
-            inset-0
-            h-full
-            w-full
-            select-none
-            object-cover
-            object-center
-          "
+          className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
         />
 
-        {/* =================================
-            DARK OVERLAYS
-        ================================= */}
+        {/* ============================
+            CINEMATIC OVERLAYS
+        ============================ */}
+
+        <div className="pointer-events-none absolute inset-0 z-10 bg-black/20" />
 
         <div
           className="pointer-events-none absolute inset-0 z-10"
           style={{
             background:
-         'linear-gradient(180deg, rgba(15,81,53,.30) 0%, rgba(23,107,69,.04) 48%, rgba(15,81,53,.22) 100%)',
+              'linear-gradient(90deg, rgba(4,16,7,.58) 0%, rgba(4,16,7,.13) 45%, rgba(4,16,7,.05) 100%)',
           }}
         />
 
-        {/* Extra mobile readability */}
-
-        <div
-          className="pointer-events-none absolute inset-0 z-10 md:hidden"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(3,12,5,.32) 0%, rgba(3,12,5,.04) 48%, rgba(3,12,5,.35) 100%)',
-          }}
-        />
-
-        {/* =================================
-            CUT IMAGE SPOTLIGHT
-        ================================= */}
+        {/* ============================
+            CUT FRUIT REVEAL
+        ============================ */}
 
         {showLens && (
           <div
             className="pointer-events-none absolute inset-0 z-20"
-
             style={{
-              backgroundImage:
-                `url(${CUT_IMAGE})`,
+  backgroundImage: `url(${cutImage})`,
 
-              backgroundSize:
-                'cover',
+  backgroundSize: 'cover',
 
-              backgroundPosition:
-                'center',
+  backgroundPosition:
+    'center',
 
-              WebkitMaskImage: `
+  WebkitMaskImage: `
                 radial-gradient(
                   circle ${lensRadius}px at ${cursor.x}px ${cursor.y}px,
                   rgba(0,0,0,1) 0%,
-                  rgba(0,0,0,1) 35%,
-                  rgba(0,0,0,.9) 52%,
-                  rgba(0,0,0,.55) 69%,
-                  rgba(0,0,0,.18) 85%,
+                  rgba(0,0,0,1) 36%,
+                  rgba(0,0,0,.88) 53%,
+                  rgba(0,0,0,.48) 70%,
+                  rgba(0,0,0,.14) 86%,
                   rgba(0,0,0,0) 100%
                 )
               `,
@@ -1307,10 +703,10 @@ const getMobileCardPosition = () => {
                 radial-gradient(
                   circle ${lensRadius}px at ${cursor.x}px ${cursor.y}px,
                   rgba(0,0,0,1) 0%,
-                  rgba(0,0,0,1) 35%,
-                  rgba(0,0,0,.9) 52%,
-                  rgba(0,0,0,.55) 69%,
-                  rgba(0,0,0,.18) 85%,
+                  rgba(0,0,0,1) 36%,
+                  rgba(0,0,0,.88) 53%,
+                  rgba(0,0,0,.48) 70%,
+                  rgba(0,0,0,.14) 86%,
                   rgba(0,0,0,0) 100%
                 )
               `,
@@ -1318,49 +714,29 @@ const getMobileCardPosition = () => {
           />
         )}
 
-        {/* =================================
-            HERO COPY
-        ================================= */}
+        {/* ============================
+            HERO TEXT
+        ============================ */}
 
-        <div
-          className="
-            pointer-events-none
-            absolute
-            left-5
-            right-5
-            top-[15%]
-            z-30
-            text-white
+        <div className="pointer-events-none absolute left-5 right-5 top-[16%] z-30 text-white sm:left-10 sm:right-auto sm:max-w-[620px] md:left-14">
 
-            sm:left-8
-            sm:right-auto
-            sm:top-[16%]
-            sm:max-w-[520px]
-
-            md:left-12
-            md:max-w-[620px]
-
-            lg:left-14
-          "
-        >
-
-          <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.28em] text-[#efffb0] sm:mb-5 sm:text-[11px] md:text-xs">
+          <p className="mb-4 text-[9px] font-semibold uppercase tracking-[0.3em] text-[#efffb0] sm:mb-5 sm:text-xs">
             Discover what you're eating
           </p>
 
-          <h1 className="leading-[0.89]">
+          <h1 className="leading-[0.9]">
 
-            <span className="font-playfair block text-[45px] font-normal italic sm:text-[64px] md:text-[76px] lg:text-[92px]">
+            <span className="font-playfair block text-[48px] font-normal italic sm:text-7xl md:text-[92px]">
               Every fruit
             </span>
 
-            <span className="font-playfair block text-[45px] font-normal italic sm:text-[64px] md:text-[76px] lg:text-[92px]">
+            <span className="font-playfair block text-[48px] font-normal italic sm:text-7xl md:text-[92px]">
               has a story.
             </span>
 
           </h1>
 
-          <p className="mt-5 max-w-[265px] text-[12px] leading-[1.7] text-[#F7F2E6]/80 sm:mt-7 sm:max-w-[310px] sm:text-sm sm:leading-7">
+          <p className="mt-6 max-w-[280px] text-[13px] leading-6 text-white/65 sm:mt-8 sm:max-w-[310px] sm:text-sm sm:leading-7">
             Move across the harvest to uncover
             the freshness, varieties and origins
             behind every fruit.
@@ -1368,104 +744,92 @@ const getMobileCardPosition = () => {
 
         </div>
 
-        {/* =================================
-            SPOTLIGHT RING
-        ================================= */}
+        {/* ============================
+            DESKTOP LENS BORDER
+        ============================ */}
 
-        {showLens && (
+        {showLens && !isMobile && (
           <div
             className="pointer-events-none absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/35"
-
             style={{
               left: cursor.x,
+              top: cursor.y,
 
-              top:
-                cursor.y +
-                ringYOffset,
-
-              width:
-                lensDiameter,
-
-              height:
-                lensDiameter,
+              width: lensDiameter,
+              height: lensDiameter,
 
               boxShadow:
                 '0 0 70px rgba(255,255,255,.08), inset 0 0 45px rgba(255,255,255,.04)',
-
-              transition:
-                isTouching
-                  ? 'none'
-                  : undefined,
             }}
           />
         )}
 
-        {/* =================================
-            DESKTOP CENTER DOT
-        ================================= */}
+        {/* ============================
+            MOBILE LENS BORDER
+        ============================ */}
 
-        {showLens &&
-          !isTouchFirst && (
-            <div
-              className="pointer-events-none absolute z-50 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+        {showLens && isMobile && (
+          <div
+            className="pointer-events-none absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/45"
+            style={{
+              left: cursor.x,
 
-              style={{
-                left:
-                  cursor.x,
+              /*
+               * Lift lens slightly above
+               * finger so user can see it.
+               */
+              top: cursor.y - 35,
 
-                top:
-                  cursor.y,
-              }}
-            />
-          )}
+              width: lensDiameter,
+              height: lensDiameter,
 
-        {/* =================================
-            DESKTOP / TRACKPAD CARD
-        ================================= */}
+              boxShadow:
+                '0 0 45px rgba(255,255,255,.12), inset 0 0 30px rgba(255,255,255,.05)',
+            }}
+          />
+        )}
+
+        {/* ============================
+            CENTER DOT — DESKTOP ONLY
+        ============================ */}
+
+        {showLens && !isMobile && (
+          <div
+            className="pointer-events-none absolute z-50 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+            style={{
+              left: cursor.x,
+              top: cursor.y,
+            }}
+          />
+        )}
+
+        {/* ============================
+            DESKTOP FRUIT CARD
+        ============================ */}
 
         {activeFruit &&
           showLens &&
-          !isTouchFirst && (
+          !isMobile && (
             <div
-              className="
-                pointer-events-none
-                absolute
-                z-[70]
-                hidden
-                w-[300px]
-                rounded-[28px]
-                border
-                border-white/20
-                bg-[#071109]/80
-                p-6
-                text-white
-                shadow-2xl
-                backdrop-blur-2xl
-                md:block
-              "
-
+              className="pointer-events-none absolute z-[70] w-[300px] rounded-[28px] border border-white/20 bg-[#071109]/80 p-6 text-white shadow-2xl backdrop-blur-2xl"
               style={{
                 left:
                   cursor.x >
                   window.innerWidth *
                     0.67
-                    ? cursor.x -
-                      345
-                    : cursor.x +
-                      215,
+                    ? cursor.x - 345
+                    : cursor.x + 215,
 
                 top:
                   cursor.y >
                   window.innerHeight *
                     0.58
-                    ? cursor.y -
-                      260
-                    : cursor.y -
-                      40,
+                    ? cursor.y - 260
+                    : cursor.y - 40,
               }}
             >
 
-              <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#F7F2E6]">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#efffb0]/70">
                 Discover
               </p>
 
@@ -1520,125 +884,30 @@ const getMobileCardPosition = () => {
             </div>
           )}
 
-        {/* =================================
-    FLOATING TOUCH DEVICE FRUIT CARD
-================================= */}
+        {/* ============================
+            MOBILE TOUCH INSTRUCTION
+        ============================ */}
 
-{activeFruit &&
-  showLens &&
-  isTouchFirst && (
-    <div
-      className="
-        pointer-events-none
-        absolute
-        z-[80]
-        w-[190px]
-        sm:w-[215px]
-      "
-      style={getMobileCardPosition()}
-    >
-      <div
-        className="
-          rounded-[20px]
-          border
-          border-[#176B45]/20
-          bg-[#F7F2E6]/94
-          p-3.5
-          text-[#123D2B]
-          shadow-[0_18px_50px_rgba(15,81,53,.20)]
-          backdrop-blur-xl
-          sm:rounded-[23px]
-          sm:p-4
-        "
-      >
+        {!isTouching &&
+          !activeFruit && (
+            <div className="pointer-events-none absolute bottom-[92px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap text-[9px] uppercase tracking-[0.22em] text-white/55 md:hidden">
 
-        {/* CARD HEADER */}
+              <span className="h-px w-5 bg-white/30" />
 
-        <div className="flex items-start justify-between gap-2">
+              Touch & drag to reveal
 
-          <div>
+              <span className="h-px w-5 bg-white/30" />
 
-            <p className="text-[7px] font-semibold uppercase tracking-[0.28em] text-[#176B45]/65">
-              Discover
-            </p>
-
-            <h2 className="font-playfair mt-1 text-[27px] leading-none italic text-[#123D2B] sm:text-[31px]">
-              {activeFruit.fruit}
-            </h2>
-
-          </div>
-
-          {autoRunning && (
-            <span className="mt-1 h-1.5 w-1.5 animate-pulse rounded-full bg-[#176B45]" />
+            </div>
           )}
 
-        </div>
-
-        <div className="my-3 h-px bg-[#176B45]/12" />
-
-        {/* VARIETIES */}
-
-        <div className="flex flex-col gap-2">
-
-          {activeFruit.varieties.map(
-            (variety) => (
-              <div
-                key={`${variety.name}-${variety.origin}`}
-                className="
-                  rounded-[13px]
-                  border
-                  border-[#176B45]/10
-                  bg-[#FCFAF3]/80
-                  px-2.5
-                  py-2
-                "
-              >
-
-                <p className="text-[11px] font-medium text-[#123D2B]">
-                  {variety.name}
-                </p>
-
-                <div className="mt-1 flex items-center gap-1 text-[8px] text-[#123D2B]/50">
-
-                  <MapPin
-                    size={9}
-                  />
-
-                  <span>
-                    {variety.origin}
-                  </span>
-
-                </div>
-
-              </div>
-            )
-          )}
-
-        </div>
-
-        {/* BRAND SIGNATURE */}
-
-        <div className="mt-3 flex items-center gap-1.5">
-
-          <span className="h-1 w-1 rounded-full bg-[#176B45]" />
-
-          <span className="text-[6px] uppercase tracking-[0.22em] text-[#123D2B]/40">
-            The Fruit House
-          </span>
-
-        </div>
-
-      </div>
-    </div>
-  )}
-
-        {/* =================================
+        {/* ============================
             DESKTOP INSTRUCTION
-        ================================= */}
+        ============================ */}
 
         {!activeFruit &&
-          !isTouchFirst && (
-            <div className="pointer-events-none absolute bottom-9 left-1/2 z-40 hidden -translate-x-1/2 items-center gap-3 whitespace-nowrap text-[10px] uppercase tracking-[0.25em] text-white/45 md:flex">
+          !isMobile && (
+            <div className="pointer-events-none absolute bottom-9 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/45">
 
               <span className="h-px w-10 bg-white/25" />
 
@@ -1649,42 +918,119 @@ const getMobileCardPosition = () => {
             </div>
           )}
 
-        {/* =================================
-            TOUCH AUTO TOUR LABEL
-        ================================= */}
+        {/* ============================
+            MOBILE CTA
+        ============================ */}
 
-        {isTouchFirst &&
-          autoRunning &&
-          !activeFruit && (
-            <div className="pointer-events-none absolute bottom-[95px] left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/10 bg-black/20 px-4 py-2 text-[8px] uppercase tracking-[0.24em] text-white/50 backdrop-blur-md">
+        {!isTouching && (
+          <div className="absolute bottom-6 left-5 right-5 z-50 md:hidden">
 
-              Exploring the harvest
+            <button className="flex w-full items-center justify-center gap-2 rounded-full bg-[#efffb0] px-7 py-3.5 text-sm font-semibold text-[#17351d] shadow-xl">
 
-            </div>
-          )}
+              Explore Collection
 
-        {/* =================================
-            MOBILE CTA BEFORE TOUR STARTS
-        ================================= */}
+              <ArrowUpRight size={16} />
 
-        {isTouchFirst &&
-          !showLens && (
-            <div
-              className="absolute bottom-5 left-5 right-5 z-50 md:hidden"
+            </button>
 
-              style={{
-                paddingBottom:
-                  'env(safe-area-inset-bottom)',
-              }}
-            >
+          </div>
+        )}
 
-              <button className="flex w-full items-center justify-center gap-2 rounded-full bg-[#efffb0] px-7 py-3.5 text-sm font-semibold text-[#17351d] shadow-xl">
+        {/* ============================
+            MOBILE FRUIT BOTTOM SHEET
+        ============================ */}
 
-                Explore Collection
+        {activeFruit &&
+          isTouching &&
+          isMobile && (
+            <div className="absolute bottom-0 left-0 right-0 z-[90] px-3 pb-3">
 
-                <ArrowUpRight size={16} />
+              <div className="rounded-[30px] border border-white/15 bg-[#071109]/90 p-5 text-white shadow-[0_-20px_60px_rgba(0,0,0,.35)] backdrop-blur-2xl">
 
-              </button>
+                {/* HANDLE */}
+
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+
+                {/* HEADER */}
+
+                <div className="flex items-start justify-between">
+
+                  <div>
+
+                    <p className="text-[8px] font-semibold uppercase tracking-[0.3em] text-[#efffb0]/70">
+                      Discover
+                    </p>
+
+                    <h2 className="font-playfair mt-1 text-[34px] leading-none italic">
+                      {activeFruit.fruit}
+                    </h2>
+
+                    <p className="mt-2 text-[11px] text-white/40">
+                      Varieties & origins
+                    </p>
+
+                  </div>
+
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/40">
+                    <X size={14} />
+                  </div>
+
+                </div>
+
+                <div className="my-4 h-px bg-white/10" />
+
+                {/* VARIETIES */}
+
+                <div
+                  className={
+                    activeFruit.varieties
+                      .length > 1
+                      ? 'grid grid-cols-2 gap-3'
+                      : 'grid grid-cols-1 gap-3'
+                  }
+                >
+
+                  {activeFruit.varieties.map(
+                    (variety) => (
+                      <div
+                        key={`${variety.name}-${variety.origin}`}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"
+                      >
+
+                        <p className="text-[13px] font-medium">
+                          {variety.name}
+                        </p>
+
+                        <div className="mt-1.5 flex items-start gap-1.5 text-[10px] leading-4 text-white/45">
+
+                          <MapPin
+                            size={11}
+                            className="mt-[2px] shrink-0"
+                          />
+
+                          <span>
+                            {variety.origin}
+                          </span>
+
+                        </div>
+
+                      </div>
+                    )
+                  )}
+
+                </div>
+
+                <div className="mt-4 flex items-center justify-center gap-2">
+
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#efffb0]" />
+
+                  <span className="text-[7px] uppercase tracking-[0.24em] text-white/30">
+                    The Fruit House Selection
+                  </span>
+
+                </div>
+
+              </div>
 
             </div>
           )}
