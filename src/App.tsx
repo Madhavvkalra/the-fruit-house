@@ -606,29 +606,63 @@ const runAutoTourStep = () => {
   */
 
   const handlePointerDown = (
-    event: ReactPointerEvent<HTMLElement>
-  ) => {
-    /*
-     * Desktop doesn't need to click.
-     * Hover already works.
-     */
-    if (event.pointerType === 'mouse') {
-      return
+  event: ReactPointerEvent<HTMLElement>
+) => {
+  /*
+   * Mouse:
+   * automatic tour stops as soon as
+   * the user moves the mouse.
+   */
+  if (event.pointerType === 'mouse') {
+    autoRunningRef.current = false
+
+    if (autoTimerRef.current) {
+      window.clearTimeout(
+        autoTimerRef.current
+      )
+      autoTimerRef.current = null
     }
 
-    setIsTouching(true)
-    setInsideHero(true)
+    if (autoAnimationRef.current) {
+      cancelAnimationFrame(
+        autoAnimationRef.current
+      )
+      autoAnimationRef.current = null
+    }
 
-    /*
-     * Capture the finger so dragging
-     * remains connected to the hero.
-     */
-    event.currentTarget.setPointerCapture(
-      event.pointerId
-    )
-
-    updatePointer(event)
+    return
   }
+
+  /*
+   * Touch / stylus:
+   * user takes control immediately.
+   */
+  userControllingRef.current = true
+  autoRunningRef.current = false
+
+  if (autoTimerRef.current) {
+    window.clearTimeout(
+      autoTimerRef.current
+    )
+    autoTimerRef.current = null
+  }
+
+  if (autoAnimationRef.current) {
+    cancelAnimationFrame(
+      autoAnimationRef.current
+    )
+    autoAnimationRef.current = null
+  }
+
+  setIsTouching(true)
+  setInsideHero(true)
+
+  event.currentTarget.setPointerCapture(
+    event.pointerId
+  )
+
+  updatePointer(event)
+}
 
   /*
   =====================================
@@ -637,26 +671,45 @@ const runAutoTourStep = () => {
   */
 
   const handlePointerMove = (
-    event: ReactPointerEvent<HTMLElement>
-  ) => {
-    /*
-     * Mouse:
-     * always reveal while inside hero.
-     */
-    if (event.pointerType === 'mouse') {
-      setInsideHero(true)
-      updatePointer(event)
-      return
+  event: ReactPointerEvent<HTMLElement>
+) => {
+  /*
+   * Mouse takes control immediately.
+   */
+  if (event.pointerType === 'mouse') {
+    if (autoRunningRef.current) {
+      autoRunningRef.current = false
+
+      if (autoTimerRef.current) {
+        window.clearTimeout(
+          autoTimerRef.current
+        )
+        autoTimerRef.current = null
+      }
+
+      if (autoAnimationRef.current) {
+        cancelAnimationFrame(
+          autoAnimationRef.current
+        )
+        autoAnimationRef.current = null
+      }
     }
 
-    /*
-     * Touch:
-     * reveal only while finger is down.
-     */
-    if (!isTouching) return
+    userControllingRef.current = true
+    setInsideHero(true)
 
     updatePointer(event)
+
+    return
   }
+
+  /*
+   * Touch only moves while finger is down.
+   */
+  if (!isTouching) return
+
+  updatePointer(event)
+}
 
   /*
   =====================================
@@ -665,29 +718,48 @@ const runAutoTourStep = () => {
   */
 
   const endTouchInteraction = (
-    event?: ReactPointerEvent<HTMLElement>
-  ) => {
-    if (
-      event &&
-      event.pointerType === 'mouse'
-    ) {
+  event?: ReactPointerEvent<HTMLElement>
+) => {
+  if (
+    event &&
+    event.pointerType === 'mouse'
+  ) {
+    userControllingRef.current = false
+    return
+  }
+
+  setIsTouching(false)
+  setInsideHero(false)
+
+  userControllingRef.current = false
+
+  /*
+   * Wait before restarting the automatic tour.
+   */
+  window.setTimeout(() => {
+    if (userControllingRef.current) {
       return
     }
 
-    setIsTouching(false)
-    setInsideHero(false)
-    setActiveFruit(null)
+    autoIndexRef.current =
+      (autoIndexRef.current + 1) %
+      fruits.length
 
-    rawPointer.current = {
-      x: -500,
-      y: -500,
-    }
+    autoRunningRef.current = true
 
-    smoothPointer.current = {
-      x: -500,
-      y: -500,
-    }
+    runAutoTourStep()
+  }, AUTO_RESUME_DELAY)
+
+  rawPointer.current = {
+    x: -500,
+    y: -500,
   }
+
+  smoothPointer.current = {
+    x: -500,
+    y: -500,
+  }
+}
 
   /*
   =====================================
