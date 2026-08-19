@@ -16,6 +16,7 @@ import ProductPopup from './components/ProductPopup'
 import Basket from './components/Basket'
 
 import Home from './pages/Home'
+import RecipientLocation from './pages/RecipientLocation'
 
 const WHOLE_IMAGE_MOBILE = '/fruit-whole-mobile.png'
 const CUT_IMAGE_MOBILE = '/fruit-cut-mobile.png'
@@ -82,6 +83,18 @@ function getCoverMetrics(
 
 function App() {
     const [isPageLoading, setIsPageLoading] = useState(true)
+
+ const [isRecipientLocationPage, setIsRecipientLocationPage] =
+    useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+
+    setIsRecipientLocationPage(
+      params.get('recipientLocation') === 'true'
+    )
+  }, [])
+
 const [isLoaderVisible, setIsLoaderVisible] = useState(true)
 
   const heroRef = useRef<HTMLElement | null>(null)
@@ -744,6 +757,11 @@ const basketTotal = basket.reduce(
   const lensRadius = lensDiameter / 2
   const displayFruit =
   activeFruit && showLens ? activeFruit : null
+
+  if (isRecipientLocationPage) {
+    return <RecipientLocation />
+  }
+
 
   return (
    
