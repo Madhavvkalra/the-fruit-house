@@ -84,16 +84,21 @@ function getCoverMetrics(
 function App() {
     const [isPageLoading, setIsPageLoading] = useState(true)
 
- const [isRecipientLocationPage, setIsRecipientLocationPage] =
-    useState(false)
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
+    
+const [isRecipientLocationPage, setIsRecipientLocationPage] =
+  useState(false)
 
-    setIsRecipientLocationPage(
-      params.get('recipientLocation') === 'true'
-    )
-  }, [])
+useEffect(() => {
+  const params = new URLSearchParams(
+    window.location.search
+  )
+
+  const isRecipient =
+    params.get('recipientLocation') === 'true'
+
+  setIsRecipientLocationPage(isRecipient)
+}, [])
 
 const [isLoaderVisible, setIsLoaderVisible] = useState(true)
 
@@ -755,17 +760,15 @@ const basketTotal = basket.reduce(
     : Math.min(400, Math.max(260, window.innerWidth * 0.16))
 
   const lensRadius = lensDiameter / 2
-  const displayFruit =
+ const displayFruit =
   activeFruit && showLens ? activeFruit : null
 
-  if (isRecipientLocationPage) {
-    return <RecipientLocation />
-  }
+if (isRecipientLocationPage) {
+  return <RecipientLocation />
+}
 
-
-  return (
-   
-<main className="min-h-screen bg-[#08150b]">
+return (
+  <main className="min-h-screen bg-[#08150b]">
 
   {isLoaderVisible && (
   <div

@@ -75,6 +75,62 @@ export default function CheckoutDelivery({
   const [showLocationPicker, setShowLocationPicker] =
     useState(false)
 
+const [locationRequestLoading, setLocationRequestLoading] =
+  useState(false)
+
+const [locationRequestUrl, setLocationRequestUrl] =
+  useState('')
+
+const [locationRequestError, setLocationRequestError] =
+  useState('')
+
+const [, setLocationRequestId] =
+  useState('')
+
+const createLocationRequest = async () => {
+  setLocationRequestLoading(true)
+  setLocationRequestError('')
+
+  try {
+    const response = await fetch(
+      '/api/create-location-request',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(
+        'Could not create location request'
+      )
+    }
+
+    const data = await response.json()
+
+    if (!data.locationUrl || !data.requestId) {
+      throw new Error(
+        'Invalid location request response'
+      )
+    }
+
+    setLocationRequestUrl(data.locationUrl)
+    setLocationRequestId(data.requestId)
+
+    updateDelivery(
+      'locationMethod',
+      'recipientLink'
+    )
+  } catch {
+    setLocationRequestError(
+      'Could not create a location link. Please try again.'
+    )
+  } finally {
+    setLocationRequestLoading(false)
+  }
+}
 
 const [locationLink, setLocationLink] =
   useState('')
@@ -85,22 +141,37 @@ const [locationLinkLoading, setLocationLinkLoading] =
 const [locationLinkError, setLocationLinkError] =
   useState('')
 
-const [recipientLocationLink, setRecipientLocationLink] =
-  useState('')
-
   const emailComplete =
     email.trim().length > 3 &&
     email.includes('@') &&
     email.includes('.')
+const locationComplete =
+  delivery.location.trim().length > 1
 
-  const deliveryComplete =
-    delivery.name.trim().length > 1 &&
-    delivery.mobile.replace(/\D/g, '').length === 10 &&
-    delivery.location.trim().length > 1 &&
-    delivery.addressLine1.trim().length > 4 &&
-    delivery.pinCode.replace(/\D/g, '').length === 6
+const recipientLocationComplete =
+  delivery.recipientType === 'self'
+    ? locationComplete
+    : delivery.locationMethod === 'map'
+      ? delivery.latitude !== null &&
+        delivery.longitude !== null &&
+        locationComplete
+      : delivery.locationMethod === 'link'
+        ? locationComplete &&
+          delivery.latitude !== null &&
+          delivery.longitude !== null
+        : delivery.locationMethod === 'recipientLink'
+          ? locationComplete
+          : false
 
-  const canContinueFromDelivery = hasSavedAddress
+const deliveryComplete =
+  delivery.name.trim().length > 1 &&
+  delivery.mobile.replace(/\D/g, '').length === 10 &&
+  delivery.addressLine1.trim().length > 4 &&
+  delivery.pinCode.replace(/\D/g, '').length === 6 &&
+  recipientLocationComplete
+
+const canContinueFromDelivery =
+  hasSavedAddress
     ? savedAddressSelected
     : deliveryComplete
 
@@ -929,112 +1000,85 @@ const fetchLocationFromLink = async () => {
 )}
           {/* SEND LINK */}
 
-          <button
-            type="button"
-            onClick={() => {
-              updateDelivery(
-                'locationMethod',
-                'recipientLink'
-              )
+        <button
+  type="button"
+  onClick={createLocationRequest}
+  disabled={locationRequestLoading}
+  className={`w-full rounded-[18px] border p-4 text-left transition-all ${
+    delivery.locationMethod === 'recipientLink'
+      ? 'border-[#17351d] bg-[#17351d]/5 shadow-sm'
+      : 'border-[#17351d]/10 bg-[#faf8ef]'
+  } ${
+    locationRequestLoading
+      ? 'cursor-wait opacity-60'
+      : ''
+  }`}
+>
+  <div className="flex items-start gap-3">
+    <div
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm ${
+        delivery.locationMethod ===
+        'recipientLink'
+          ? 'bg-[#17351d] text-[#efffb0]'
+          : 'bg-[#efffb0] text-[#17351d]'
+      }`}
+    >
+      ↗
+    </div>
 
-              const link =
-                `${window.location.origin}/?recipientLocation=true`
+    <div>
+      <p className="text-sm font-semibold">
+        Send them a location link
+      </p>
 
-              setRecipientLocationLink(link)
-            }}
-            className={`w-full rounded-[18px] border p-4 text-left transition-all ${
-              delivery.locationMethod === 'recipientLink'
-                ? 'border-[#17351d] bg-[#17351d]/5 shadow-sm'
-                : 'border-[#17351d]/10 bg-[#faf8ef]'
-            }`}
-          >
-            <div className="flex items-start gap-3">
+      <p className="mt-1 text-xs leading-5 text-[#17351d]/45">
+        Create a link for them to add their own location
+      </p>
+    </div>
+  </div>
+</button>
 
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#efffb0]">
-                ↗
-              </div>
+{delivery.locationMethod ===
+  'recipientLink' &&
+  locationRequestUrl && (
+    <div className="rounded-[18px] border border-[#17351d]/10 bg-[#faf8ef] p-4">
+      <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
+        Location request created
+      </p>
 
-              <div>
-                <p className="text-sm font-semibold">
-                  Send them a location link
-                </p>
+      <p className="mt-2 text-xs leading-5 text-[#17351d]/50">
+        Send this link to the person receiving the
+        order.
+      </p>
 
-                <p className="mt-1 text-xs leading-5 text-[#17351d]/45">
-                  Let them add their own location
-                </p>
-              </div>
+      <div className="mt-3 flex gap-2">
+        <input
+          type="text"
+          readOnly
+          value={locationRequestUrl}
+          className="min-w-0 flex-1 rounded-[12px] border border-[#17351d]/10 bg-white px-3 text-xs outline-none"
+        />
 
-            </div>
-          </button>
+        <button
+          type="button"
+          onClick={() =>
+            navigator.clipboard.writeText(
+              locationRequestUrl
+            )
+          }
+          className="shrink-0 rounded-[12px] bg-[#17351d] px-4 text-xs font-semibold text-white transition hover:bg-[#244b2b]"
+        >
+          Copy
+        </button>
+      </div>
 
-          {/* GENERATED LINK */}
-
-          {delivery.locationMethod === 'recipientLink' && (
-            <div className="rounded-[18px] border border-[#17351d]/10 bg-[#faf8ef] p-4">
-
-              <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
-                Recipient location link
-              </p>
-
-              <p className="mt-2 text-xs leading-5 text-[#17351d]/45">
-                Send this link to the person receiving
-                the order. They can enter their location
-                and address themselves.
-              </p>
-
-              <div className="mt-4 flex gap-2">
-
-                <input
-                  type="text"
-                  readOnly
-                  value={recipientLocationLink}
-                  className="h-11 min-w-0 flex-1 rounded-[12px] border border-[#17351d]/10 bg-white px-3 text-xs text-[#17351d]/60 outline-none"
-                />
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!recipientLocationLink) return
-
-                    try {
-                      await navigator.clipboard.writeText(
-                        recipientLocationLink
-                      )
-                    } catch {
-                      // Clipboard unavailable
-                    }
-                  }}
-                  className="shrink-0 rounded-[12px] bg-[#17351d] px-4 text-xs font-semibold text-white transition hover:bg-[#244b2b] active:scale-95"
-                >
-                  Copy
-                </button>
-
-              </div>
-
-              {navigator.share && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.share({
-                        title:
-                          'The Fruit House — Delivery Location',
-                        text:
-                          'Please add your delivery location for your Fruit House order.',
-                        url: recipientLocationLink,
-                      })
-                    } catch {
-                      // User closed share sheet
-                    }
-                  }}
-                  className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#17351d]/15 bg-white/70 text-sm font-semibold text-[#17351d] transition hover:bg-white"
-                >
-                  ↗ Share location link
-                </button>
-              )}
-
-            </div>
-          )}
+      {locationRequestError && (
+        <p className="mt-2 text-xs text-red-700">
+          {locationRequestError}
+        </p>
+      )}
+    </div>
+  )}
 
         </div>
       )}

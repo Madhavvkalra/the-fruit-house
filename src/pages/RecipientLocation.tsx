@@ -12,8 +12,17 @@ export default function RecipientLocation({
   const [addressLine1, setAddressLine1] = useState('')
   const [addressLine2, setAddressLine2] = useState('')
   const [pinCode, setPinCode] = useState('')
-
+  
   const [saved, setSaved] = useState(false)
+
+  const [saveError, setSaveError] = useState('')
+
+const [saving, setSaving] = useState(false)
+
+const requestId =
+  new URLSearchParams(
+    window.location.search
+  ).get('requestId')
 
   const isComplete =
     name.trim().length > 1 &&
@@ -21,23 +30,50 @@ export default function RecipientLocation({
     addressLine1.trim().length > 4 &&
     pinCode.replace(/\D/g, '').length === 6
 
-  const handleSave = () => {
-    if (!isComplete) return
+const handleSave = async () => {
+  if (!isComplete || saving) return
 
-    const locationData = {
-      name: name.trim(),
-      location: location.trim(),
-      addressLine1: addressLine1.trim(),
-      addressLine2: addressLine2.trim(),
-      pinCode: pinCode.replace(/\D/g, ''),
+  if (!requestId) {
+    setSaveError(
+      'This location request is invalid or has expired.'
+    )
+    return
+  }
+
+  setSaving(true)
+  setSaveError('')
+
+  const locationData = {
+    requestId,
+    name: name.trim(),
+    location: location.trim(),
+    addressLine1: addressLine1.trim(),
+    addressLine2: addressLine2.trim(),
+    pinCode: pinCode.replace(/\D/g, ''),
+  }
+
+  try {
+    const response = await fetch(
+      '/api/save-recipient-location',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(locationData),
+      }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+          'Could not save your location.'
+      )
     }
 
-    /*
-     * TEMPORARY STORAGE
-     *
-     * This lets us test the complete flow before
-     * connecting a real backend/database.
-     */
+    // Keep a local copy for development/testing.
     localStorage.setItem(
       'fruitHouseRecipientLocation',
       JSON.stringify(locationData)
@@ -45,7 +81,16 @@ export default function RecipientLocation({
 
     setSaved(true)
     onSaved?.()
+  } catch (error) {
+    setSaveError(
+      error instanceof Error
+        ? error.message
+        : 'Could not save your location. Please try again.'
+    )
+  } finally {
+    setSaving(false)
   }
+}
 
   if (saved) {
     return (
@@ -248,7 +293,7 @@ export default function RecipientLocation({
 
             <button
               type="button"
-              disabled={!isComplete}
+              disabled={!isComplete || saving}
               onClick={handleSave}
               className={`mt-7 flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold transition active:scale-[0.98] ${
                 isComplete
@@ -256,7 +301,15 @@ export default function RecipientLocation({
                   : 'cursor-not-allowed bg-[#17351d]/10 text-[#17351d]/30'
               }`}
             >
-              Save delivery location
+            {saving
+  ? 'Saving location...'
+  : 'Save delivery location'}
+
+  {saveError && (
+  <p className="mt-3 text-center text-xs text-red-700">
+    {saveError}
+  </p>
+)}
             </button>
 
           </section>
