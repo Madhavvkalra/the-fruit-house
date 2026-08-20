@@ -79,12 +79,22 @@ const [locationRequestLoading, setLocationRequestLoading] =
   useState(false)
 
 const [locationRequestUrl, setLocationRequestUrl] =
-  useState('')
-
-const [locationRequestError, setLocationRequestError] =
-  useState('')
+  useState(
+    () =>
+      localStorage.getItem(
+        'fruitHouseLocationRequestUrl'
+      ) || ''
+  )
 
 const [locationRequestId, setLocationRequestId] =
+  useState(
+    () =>
+      localStorage.getItem(
+        'fruitHouseLocationRequestId'
+      ) || ''
+  )
+
+const [locationRequestError, setLocationRequestError] =
   useState('')
 
 const [recipientLocationReceived, setRecipientLocationReceived] =
@@ -93,134 +103,134 @@ const [recipientLocationReceived, setRecipientLocationReceived] =
   const [locationLinkCopied, setLocationLinkCopied] =
   useState(false)
 
- useEffect(() => {
+useEffect(() => {
   if (
-    delivery.recipientType !==
-      'someoneElse' ||
-    delivery.locationMethod !==
-      'recipientLink' ||
+    delivery.recipientType !== 'someoneElse' ||
+    delivery.locationMethod !== 'recipientLink' ||
     !locationRequestId
   ) {
     return
   }
 
   let cancelled = false
+  let received = false
 
-  const checkRecipientLocation =
-    async () => {
+  const checkRecipientLocation = async () => {
+    if (cancelled || received) {
+      return
+    }
+
+    try {
+      const response = await fetch(
+        `/api/get-location-request?requestId=${encodeURIComponent(
+          locationRequestId
+        )}`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        return
+      }
+
+      const text = await response.text()
+
+      let data: {
+        success?: boolean
+        saved?: boolean
+        location?: {
+          name?: string
+          location?: string
+          addressLine1?: string
+          addressLine2?: string
+          pinCode?: string
+          latitude?: number | null
+          longitude?: number | null
+        } | null
+      } = {}
+
       try {
-        const response = await fetch(
-          `/api/get-location-request?requestId=${encodeURIComponent(
-            locationRequestId
-          )}`,
-          {
-            method: 'GET',
-            cache: 'no-store',
-          }
-        )
+        data = text
+          ? JSON.parse(text)
+          : {}
+      } catch {
+        return
+      }
 
-        const text =
-          await response.text()
+      if (
+        cancelled ||
+        !data.success ||
+        !data.saved ||
+        !data.location
+      ) {
+        return
+      }
 
-        if (!response.ok) {
-          return
-        }
+      received = true
 
-        let data: {
-          success?: boolean
-          saved?: boolean
-          location?: {
-            name?: string
-            location?: string
-            addressLine1?: string
-            addressLine2?: string
-            pinCode?: string
-            latitude?: number | null
-            longitude?: number | null
-          } | null
-        }
+      const recipient = data.location
 
-        try {
-          data = text
-            ? JSON.parse(text)
-            : {}
-        } catch {
-          return
-        }
+      console.log(
+        'RECIPIENT LOCATION RECEIVED',
+        recipient
+      )
 
-        if (
-          cancelled ||
-          !data.success ||
-          !data.saved ||
-          !data.location
-        ) {
-          return
-        }
+      setRecipientLocationReceived(true)
 
-        setRecipientLocationReceived(true)
+      updateDelivery(
+        'name',
+        recipient.name || ''
+      )
 
-        const recipient =
-          data.location
+      updateDelivery(
+        'location',
+        recipient.location || ''
+      )
 
-        updateDelivery(
-          'name',
-          recipient.name || ''
-        )
+      updateDelivery(
+        'addressLine1',
+        recipient.addressLine1 || ''
+      )
 
-        updateDelivery(
-          'location',
-          recipient.location || ''
-        )
+      updateDelivery(
+        'addressLine2',
+        recipient.addressLine2 || ''
+      )
 
-        updateDelivery(
-          'addressLine1',
-          recipient.addressLine1 || ''
-        )
+      updateDelivery(
+        'pinCode',
+        recipient.pinCode || ''
+      )
 
-        updateDelivery(
-          'addressLine2',
-          recipient.addressLine2 || ''
-        )
+      updateDelivery(
+        'latitude',
+        recipient.latitude ?? null
+      )
 
-        updateDelivery(
-          'pinCode',
-          recipient.pinCode || ''
-        )
-
-        updateDelivery(
-          'latitude',
-          recipient.latitude ?? null
-        )
-
-        updateDelivery(
-          'longitude',
-          recipient.longitude ?? null
-        )
-        
-      console.log('RECIPIENT LOCATION RECEIVED:', {
-  latitude: recipient.latitude,
-  longitude: recipient.longitude,
-  location: recipient.location,
-  addressLine1: recipient.addressLine1,
-  addressLine2: recipient.addressLine2,
-  pinCode: recipient.pinCode,
-})
-
-      } catch (error) {
+      updateDelivery(
+        'longitude',
+        recipient.longitude ?? null
+      )
+    } catch (error) {
+      if (!cancelled) {
         console.error(
           'Recipient location check error:',
           error
         )
       }
     }
+  }
 
+  // Check immediately when the effect starts.
   checkRecipientLocation()
 
-  const interval =
-    window.setInterval(
-      checkRecipientLocation,
-      5000
-    )
+  // Continue checking every 2 seconds.
+  const interval = window.setInterval(
+    checkRecipientLocation,
+    2000
+  )
 
   return () => {
     cancelled = true
@@ -231,7 +241,7 @@ const [recipientLocationReceived, setRecipientLocationReceived] =
   delivery.locationMethod,
   locationRequestId,
   updateDelivery,
-]) 
+])
 
 const createLocationRequest = async () => {
   setLocationRequestLoading(true)
@@ -310,6 +320,16 @@ const createLocationRequest = async () => {
     setLocationRequestId(
       data.requestId
     )
+
+localStorage.setItem(
+  'fruitHouseLocationRequestId',
+  data.requestId
+)
+
+localStorage.setItem(
+  'fruitHouseLocationRequestUrl',
+  data.locationUrl
+)
 
     updateDelivery(
       'locationMethod',
