@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import LocationPicker from './LocationPicker'
 
 export type DeliveryDetails = {
@@ -84,8 +84,136 @@ const [locationRequestUrl, setLocationRequestUrl] =
 const [locationRequestError, setLocationRequestError] =
   useState('')
 
-const [, setLocationRequestId] =
+const [locationRequestId, setLocationRequestId] =
   useState('')
+
+ useEffect(() => {
+  if (
+    delivery.recipientType !==
+      'someoneElse' ||
+    delivery.locationMethod !==
+      'recipientLink' ||
+    !locationRequestId
+  ) {
+    return
+  }
+
+  let cancelled = false
+
+  const checkRecipientLocation =
+    async () => {
+      try {
+        const response = await fetch(
+          `/api/get-location-request?requestId=${encodeURIComponent(
+            locationRequestId
+          )}`,
+          {
+            method: 'GET',
+            cache: 'no-store',
+          }
+        )
+
+        const text =
+          await response.text()
+
+        if (!response.ok) {
+          return
+        }
+
+        let data: {
+          success?: boolean
+          saved?: boolean
+          location?: {
+            name?: string
+            location?: string
+            addressLine1?: string
+            addressLine2?: string
+            pinCode?: string
+            latitude?: number | null
+            longitude?: number | null
+          } | null
+        }
+
+        try {
+          data = text
+            ? JSON.parse(text)
+            : {}
+        } catch {
+          return
+        }
+
+        if (
+          cancelled ||
+          !data.success ||
+          !data.saved ||
+          !data.location
+        ) {
+          return
+        }
+
+        const recipient =
+          data.location
+
+        updateDelivery(
+          'name',
+          recipient.name || ''
+        )
+
+        updateDelivery(
+          'location',
+          recipient.location || ''
+        )
+
+        updateDelivery(
+          'addressLine1',
+          recipient.addressLine1 || ''
+        )
+
+        updateDelivery(
+          'addressLine2',
+          recipient.addressLine2 || ''
+        )
+
+        updateDelivery(
+          'pinCode',
+          recipient.pinCode || ''
+        )
+
+        updateDelivery(
+          'latitude',
+          recipient.latitude ?? null
+        )
+
+        updateDelivery(
+          'longitude',
+          recipient.longitude ?? null
+        )
+      } catch (error) {
+        console.error(
+          'Recipient location check error:',
+          error
+        )
+      }
+    }
+
+  checkRecipientLocation()
+
+  const interval =
+    window.setInterval(
+      checkRecipientLocation,
+      5000
+    )
+
+  return () => {
+    cancelled = true
+    window.clearInterval(interval)
+  }
+}, [
+  delivery.recipientType,
+  delivery.locationMethod,
+  locationRequestId,
+  updateDelivery,
+]) 
 
 const createLocationRequest = async () => {
   setLocationRequestLoading(true)
