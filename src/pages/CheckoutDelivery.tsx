@@ -90,6 +90,9 @@ const [locationRequestId, setLocationRequestId] =
 const [recipientLocationReceived, setRecipientLocationReceived] =
   useState(false)  
 
+  const [locationLinkCopied, setLocationLinkCopied] =
+  useState(false)
+
  useEffect(() => {
   if (
     delivery.recipientType !==
@@ -1366,17 +1369,34 @@ const fetchLocationFromLink = async () => {
           className="min-w-0 flex-1 rounded-[12px] border border-[#17351d]/10 bg-white px-3 text-xs outline-none"
         />
 
-        <button
-          type="button"
-          onClick={() =>
-            navigator.clipboard.writeText(
-              locationRequestUrl
-            )
-          }
-          className="shrink-0 rounded-[12px] bg-[#17351d] px-4 text-xs font-semibold text-white transition hover:bg-[#244b2b]"
-        >
-          Copy
-        </button>
+      <button
+  type="button"
+  onClick={async () => {
+    try {
+      await navigator.clipboard.writeText(
+        locationRequestUrl
+      )
+
+      setLocationLinkCopied(true)
+
+      window.setTimeout(() => {
+        setLocationLinkCopied(false)
+      }, 2000)
+    } catch (error) {
+      console.error(
+        'Copy location link error:',
+        error
+      )
+    }
+  }}
+  className={`shrink-0 rounded-[12px] px-4 text-xs font-semibold transition-all active:scale-[0.97] ${
+    locationLinkCopied
+      ? 'bg-[#efffb0] text-[#17351d]'
+      : 'bg-[#17351d] text-white hover:bg-[#244b2b]'
+  }`}
+>
+  {locationLinkCopied ? '✓ Copied' : 'Copy'}
+</button>
       </div>
 
       {locationRequestError && (
