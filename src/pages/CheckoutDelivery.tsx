@@ -1531,47 +1531,7 @@ const fetchLocationFromLink = async () => {
           </div>
         )}
 
-        {/* LOCATION SNAPSHOT */}
 
-        {delivery.latitude !== null &&
-          delivery.longitude !== null && (
-            <div className="mt-3 overflow-hidden rounded-[18px] border border-[#17351d]/10 bg-[#faf8ef]">
-
-              <div className="relative h-40 w-full overflow-hidden bg-[#dfe6dc]">
-
-                <iframe
-                  title="Selected delivery location"
-                  className="pointer-events-none h-full w-full border-0"
-                  loading="lazy"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                    Number(delivery.longitude) - 0.01
-                  },${
-                    Number(delivery.latitude) - 0.01
-                  },${
-                    Number(delivery.longitude) + 0.01
-                  },${
-                    Number(delivery.latitude) + 0.01
-                  }&layer=mapnik&marker=${
-                    delivery.latitude
-                  },${delivery.longitude}`}
-                />
-
-              </div>
-
-              <div className="px-4 py-3">
-
-                <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
-                  Location selected
-                </p>
-
-                <p className="mt-1 text-xs text-[#17351d]/50">
-                  {delivery.location}
-                </p>
-
-              </div>
-
-            </div>
-          )}
 
       </div>
 
