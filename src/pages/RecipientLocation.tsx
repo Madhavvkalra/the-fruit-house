@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import LocationPicker from './LocationPicker'
 
 type RecipientLocationProps = {
   onSaved?: () => void
@@ -12,15 +13,26 @@ export default function RecipientLocation({
   const [addressLine1, setAddressLine1] = useState('')
   const [addressLine2, setAddressLine2] = useState('')
   const [pinCode, setPinCode] = useState('')
-  
+
   const [saved, setSaved] = useState(false)
 
+  const [showLocationPicker, setShowLocationPicker] =
+  useState(false)
+
+const [locationLoading, setLocationLoading] =
+  useState(false)
+
+  const [locationError, setLocationError] = useState('')
+
+  const [latitude, setLatitude] =
+    useState<number | null>(null)
+  const [longitude, setLongitude] =
+    useState<number | null>(null)
+
   const [saveError, setSaveError] = useState('')
+  const [saving, setSaving] = useState(false)
 
-const [saving, setSaving] = useState(false)
-
-const requestId =
-  new URLSearchParams(
+  const requestId = new URLSearchParams(
     window.location.search
   ).get('requestId')
 
@@ -30,28 +42,200 @@ const requestId =
     addressLine1.trim().length > 4 &&
     pinCode.replace(/\D/g, '').length === 6
 
-const handleSave = async () => {
-  if (!isComplete || saving) return
+  const reverseGeocode = async (
+    selectedLatitude: number,
+    selectedLongitude: number
+  ) => {
+    setLocation(
+      `${selectedLatitude.toFixed(
+        6
+      )}, ${selectedLongitude.toFixed(6)}`
+    )
 
-  if (!requestId) {
-    setSaveError(
-      'This location link is missing its request ID.'
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${selectedLatitude}&lon=${selectedLongitude}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Location lookup failed')
+      }
+
+      const data = await response.json()
+      const address = data.address ?? {}
+
+      const city =
+        address.city ||
+        address.town ||
+        address.village ||
+        address.suburb ||
+        address.county ||
+        ''
+
+      const state = address.state || ''
+      const postcode = address.postcode || ''
+
+      const locationText = [city, state]
+        .filter(Boolean)
+        .join(', ')
+
+      if (locationText) {
+        setLocation(locationText)
+      }
+
+      if (postcode) {
+        setPinCode(
+          postcode.replace(/\D/g, '')
+        )
+      }
+    } catch (error) {
+      console.error(
+        'Reverse geocoding error:',
+        error
+      )
+
+      setLocationError(
+        'Location selected. Please enter the city and pincode manually.'
+      )
+    }
+  }
+
+const detectLocation = () => {
+  if (!navigator.geolocation) {
+    setLocationError(
+      'Location is not supported on this device.'
     )
     return
   }
 
-  setSaving(true)
-  setSaveError('')
+  setLocationLoading(true)
+  setLocationError('')
 
-  try {
-    const response = await fetch(
-      '/api/save-recipient-location',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const {
+        latitude: detectedLatitude,
+        longitude: detectedLongitude,
+      } = position.coords
+
+      setLatitude(detectedLatitude)
+      setLongitude(detectedLongitude)
+
+      await reverseGeocode(
+        detectedLatitude,
+        detectedLongitude
+      )
+
+      setLocationLoading(false)
+    },
+    (error) => {
+      console.error(
+        'Geolocation error:',
+        error
+      )
+
+      setLocationLoading(false)
+
+      setLocationError(
+        'Please allow location access to detect your location.'
+      )
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+    }
+  )
+}
+
+const handleMapConfirm = async (
+  selectedLatitude: number,
+  selectedLongitude: number
+) => {
+  setLatitude(selectedLatitude)
+  setLongitude(selectedLongitude)
+  setLocationError('')
+
+  await reverseGeocode(
+    selectedLatitude,
+    selectedLongitude
+  )
+
+  setShowLocationPicker(false)
+}
+
+  const handleSave = async () => {
+    if (!isComplete || saving) {
+      return
+    }
+
+    if (!requestId) {
+      setSaveError(
+        'This location link is missing its request ID.'
+      )
+      return
+    }
+
+    setSaving(true)
+    setSaveError('')
+
+    try {
+      const response = await fetch(
+        '/api/save-recipient-location',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            requestId,
+            name: name.trim(),
+            location: location.trim(),
+            addressLine1:
+              addressLine1.trim(),
+            addressLine2:
+              addressLine2.trim(),
+            pinCode:
+              pinCode.replace(/\D/g, ''),
+            latitude,
+            longitude,
+          }),
+        }
+      )
+
+      const text = await response.text()
+
+      let data: {
+        success?: boolean
+        location?: unknown
+        error?: string
+      } = {}
+
+      try {
+        data = text
+          ? JSON.parse(text)
+          : {}
+      } catch {
+        throw new Error(
+          'The server returned an invalid response.'
+        )
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            'Could not save the delivery location.'
+        )
+      }
+
+      localStorage.setItem(
+        'fruitHouseRecipientLocation',
+        JSON.stringify({
           requestId,
           name: name.trim(),
           location: location.trim(),
@@ -61,70 +245,28 @@ const handleSave = async () => {
             addressLine2.trim(),
           pinCode:
             pinCode.replace(/\D/g, ''),
-          latitude: null,
-          longitude: null,
-        }),
-      }
-    )
-
-    const text =
-      await response.text()
-
-    let data: {
-      success?: boolean
-      location?: unknown
-      error?: string
-    } = {}
-
-    try {
-      data = text
-        ? JSON.parse(text)
-        : {}
-    } catch {
-      throw new Error(
-        'The server returned an invalid response.'
+          latitude,
+          longitude,
+        })
       )
-    }
 
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
-          'Could not save the delivery location.'
+      setSaved(true)
+      onSaved?.()
+    } catch (error) {
+      console.error(
+        'Save recipient location error:',
+        error
       )
+
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'Could not save the delivery location.'
+      )
+    } finally {
+      setSaving(false)
     }
-
-    localStorage.setItem(
-      'fruitHouseRecipientLocation',
-      JSON.stringify({
-        requestId,
-        name: name.trim(),
-        location: location.trim(),
-        addressLine1:
-          addressLine1.trim(),
-        addressLine2:
-          addressLine2.trim(),
-        pinCode:
-          pinCode.replace(/\D/g, ''),
-      })
-    )
-
-    setSaved(true)
-    onSaved?.()
-  } catch (error) {
-    console.error(
-      'Save recipient location error:',
-      error
-    )
-
-    setSaveError(
-      error instanceof Error
-        ? error.message
-        : 'Could not save the delivery location.'
-    )
-  } finally {
-    setSaving(false)
   }
-}
 
   if (saved) {
     return (
@@ -156,12 +298,14 @@ const handleSave = async () => {
 
                 <p className="mt-2 text-sm leading-6 text-white/55">
                   {addressLine1}
+
                   {addressLine2 && (
                     <>
                       <br />
                       {addressLine2}
                     </>
                   )}
+
                   <br />
                   {location}
                   <br />
@@ -175,7 +319,17 @@ const handleSave = async () => {
     )
   }
 
-  return (
+return (
+   <>
+   {showLocationPicker && (
+  <LocationPicker
+    initialLatitude={latitude}
+    initialLongitude={longitude}
+    onClose={() => setShowLocationPicker(false)}
+    onConfirm={handleMapConfirm}
+  />
+)}
+
     <main className="min-h-screen bg-[#f5f3e8] text-[#17351d]">
       <div className="px-4 py-8 sm:px-8 sm:py-12">
         <div className="mx-auto w-full max-w-[560px]">
@@ -227,25 +381,204 @@ const handleSave = async () => {
 
             {/* LOCATION */}
 
-            <div className="mt-5">
-              <label
-                htmlFor="recipient-location"
-                className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#17351d]/50"
-              >
-                Location / City
-              </label>
+<div className="mt-5">
+  <label
+    htmlFor="recipient-location"
+    className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#17351d]/50"
+  >
+    Location / City
+  </label>
 
-              <input
-                id="recipient-location"
-                type="text"
-                value={location}
-                onChange={(event) =>
-                  setLocation(event.target.value)
-                }
-                placeholder="Chandigarh, Mohali, Panchkula..."
-                className="h-12 w-full rounded-[14px] border border-[#17351d]/10 bg-[#faf8ef] px-4 text-base outline-none transition placeholder:text-[#17351d]/25 focus:border-[#17351d]/30 focus:bg-white"
-              />
-            </div>
+  <input
+    id="recipient-location"
+    type="text"
+    value={location}
+    onChange={(event) =>
+      setLocation(event.target.value)
+    }
+    placeholder="Chandigarh, Mohali, Panchkula..."
+    className="h-12 w-full rounded-[14px] border border-[#17351d]/10 bg-[#faf8ef] px-4 text-base outline-none transition placeholder:text-[#17351d]/25 focus:border-[#17351d]/30 focus:bg-white"
+  />
+
+  {/* LOCATION ACTIONS */}
+
+  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+
+    {/* CURRENT LOCATION */}
+
+    <button
+      type="button"
+      onClick={detectLocation}
+      disabled={locationLoading}
+      className="
+        flex
+        h-12
+        items-center
+        justify-center
+        gap-2
+        rounded-[14px]
+        border
+        border-[#17351d]/15
+        bg-[#efffb0]
+        px-4
+        text-sm
+        font-semibold
+        text-[#17351d]
+        transition
+        hover:bg-[#e6f59d]
+        active:scale-[0.98]
+        disabled:cursor-wait
+        disabled:opacity-60
+      "
+    >
+      <span className="text-base">
+        ⌖
+      </span>
+
+      {locationLoading
+        ? 'Detecting...'
+        : 'Use my location'}
+    </button>
+
+    {/* MAP */}
+
+    <button
+      type="button"
+      onClick={() =>
+        setShowLocationPicker(true)
+      }
+      className="
+        flex
+        h-12
+        items-center
+        justify-center
+        gap-2
+        rounded-[14px]
+        border
+        border-[#17351d]/15
+        bg-white
+        px-4
+        text-sm
+        font-semibold
+        text-[#17351d]
+        transition
+        hover:bg-[#faf8ef]
+        active:scale-[0.98]
+      "
+    >
+      <span className="text-base">
+        🗺️
+      </span>
+
+      Select on map
+    </button>
+
+  </div>
+
+{latitude !== null && longitude !== null && (
+  <div className="mt-4 overflow-hidden rounded-[20px] border border-[#17351d]/10 bg-[#faf8ef] shadow-[0_10px_35px_rgba(8,21,11,.05)]">
+
+    <div className="relative h-48 w-full overflow-hidden bg-[#dfe6dc] sm:h-56">
+      <iframe
+        title="Selected delivery location"
+        className="pointer-events-none h-full w-full border-0"
+        loading="lazy"
+        src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+          longitude - 0.01
+        },${
+          latitude - 0.01
+        },${
+          longitude + 0.01
+        },${
+          latitude + 0.01
+        }&layer=mapnik&marker=${
+          latitude
+        },${longitude}`}
+      />
+
+      <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-[#17351d] shadow-sm backdrop-blur">
+        Selected location
+      </div>
+    </div>
+
+    <div className="px-4 py-3.5">
+      <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
+        Exact delivery point
+      </p>
+
+      <p className="mt-1 text-sm font-medium text-[#17351d]">
+        {location || 'Location selected'}
+      </p>
+
+      <p className="mt-1 text-[10px] text-[#17351d]/40">
+        {latitude.toFixed(6)}, {longitude.toFixed(6)}
+      </p>
+    </div>
+
+  </div>
+)}
+
+  {locationError && (
+    <p className="mt-2 text-xs text-red-700">
+      {locationError}
+    </p>
+  )}
+
+  {/* SELECTED LOCATION */}
+
+  {latitude !== null &&
+    longitude !== null && (
+      <div
+        className="
+          mt-3
+          rounded-[16px]
+          border
+          border-[#17351d]/10
+          bg-[#efffb0]/40
+          px-4
+          py-3
+        "
+      >
+        <p
+          className="
+            text-[8px]
+            font-semibold
+            uppercase
+            tracking-[0.18em]
+            text-[#71864d]
+          "
+        >
+          Exact location selected
+        </p>
+
+        <p className="mt-1 text-sm font-medium">
+          {location}
+        </p>
+
+        <p className="mt-1 text-[10px] text-[#17351d]/40">
+          {latitude.toFixed(6)}, {longitude.toFixed(6)}
+        </p>
+
+        <button
+          type="button"
+          onClick={() =>
+            setShowLocationPicker(true)
+          }
+          className="
+            mt-3
+            text-xs
+            font-semibold
+            text-[#17351d]
+            underline
+            underline-offset-4
+          "
+        >
+          Change location
+        </button>
+      </div>
+    )}
+</div>
+
 
             {/* ADDRESS 1 */}
 
@@ -335,16 +668,16 @@ const handleSave = async () => {
                   : 'cursor-not-allowed bg-[#17351d]/10 text-[#17351d]/30'
               }`}
             >
-            {saving
-  ? 'Saving location...'
-  : 'Save delivery location'}
-
-  {saveError && (
-  <p className="mt-3 text-center text-xs text-red-700">
-    {saveError}
-  </p>
-)}
+              {saving
+                ? 'Saving location...'
+                : 'Save delivery location'}
             </button>
+
+            {saveError && (
+              <p className="mt-3 text-center text-xs text-red-700">
+                {saveError}
+              </p>
+            )}
 
           </section>
 
@@ -355,5 +688,6 @@ const handleSave = async () => {
         </div>
       </div>
     </main>
-  )
+  </>
+)
 }

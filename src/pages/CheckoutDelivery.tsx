@@ -193,6 +193,16 @@ const [recipientLocationReceived, setRecipientLocationReceived] =
           'longitude',
           recipient.longitude ?? null
         )
+        
+      console.log('RECIPIENT LOCATION RECEIVED:', {
+  latitude: recipient.latitude,
+  longitude: recipient.longitude,
+  location: recipient.location,
+  addressLine1: recipient.addressLine1,
+  addressLine2: recipient.addressLine2,
+  pinCode: recipient.pinCode,
+})
+
       } catch (error) {
         console.error(
           'Recipient location check error:',
@@ -338,16 +348,18 @@ const recipientLocationComplete =
   delivery.recipientType === 'self'
     ? locationComplete
     : delivery.locationMethod === 'map'
-      ? delivery.latitude !== null &&
-        delivery.longitude !== null &&
-        locationComplete
-      : delivery.locationMethod === 'link'
-        ? locationComplete &&
-          delivery.latitude !== null &&
-          delivery.longitude !== null
-        : delivery.locationMethod === 'recipientLink'
-          ? locationComplete
-          : false
+    ? delivery.latitude !== null &&
+      delivery.longitude !== null &&
+      locationComplete
+    : delivery.locationMethod === 'link'
+    ? locationComplete &&
+      delivery.latitude !== null &&
+      delivery.longitude !== null
+    : delivery.locationMethod === 'recipientLink'
+    ? locationComplete &&
+      delivery.latitude !== null &&
+      delivery.longitude !== null
+    : false
 
 const deliveryComplete =
   delivery.name.trim().length > 1 &&
@@ -1048,13 +1060,9 @@ const fetchLocationFromLink = async () => {
           <button
             type="button"
             onClick={() => {
-              updateDelivery(
-                'locationMethod',
-                'map'
-              )
-
-              setShowLocationPicker(true)
-            }}
+  alert('RECIPIENT MAP BUTTON CLICKED')
+  setShowLocationPicker(true)
+}}
             className={`w-full rounded-[18px] border p-4 text-left transition-all ${
               delivery.locationMethod === 'map'
                 ? 'border-[#17351d] bg-[#17351d]/5 shadow-sm'
@@ -1238,20 +1246,97 @@ const fetchLocationFromLink = async () => {
 </p>
 
 {recipientLocationReceived ? (
-  <div className="mt-4 flex items-center gap-3 rounded-[16px] border border-[#17351d]/10 bg-[#efffb0]/50 p-4">
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17351d] text-sm text-[#efffb0]">
-      ✓
+  <div className="mt-4 overflow-hidden rounded-[20px] border border-[#17351d]/10 bg-white">
+    {/* SUCCESS HEADER */}
+    <div className="flex items-center gap-3 bg-[#efffb0]/50 px-4 py-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17351d] text-sm text-[#efffb0]">
+        ✓
+      </div>
+
+      <div>
+        <p className="text-sm font-semibold text-[#17351d]">
+          Recipient location received
+        </p>
+
+        <p className="mt-0.5 text-xs text-[#17351d]/50">
+          Delivery details have been added to this order.
+        </p>
+      </div>
     </div>
 
-    <div>
-      <p className="text-sm font-semibold text-[#17351d]">
-        Recipient location received
+    {/* RECIPIENT DETAILS */}
+    <div className="p-4">
+      <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
+        Delivering to
       </p>
 
-      <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
-        Their delivery details have been added to
-        this order.
+      <p className="mt-2 text-base font-semibold text-[#17351d]">
+        {delivery.name}
       </p>
+
+      <p className="mt-2 text-sm leading-6 text-[#17351d]/60">
+        {delivery.addressLine1}
+
+        {delivery.addressLine2 && (
+          <>
+            <br />
+            {delivery.addressLine2}
+          </>
+        )}
+
+        <br />
+        {delivery.location}
+
+        <br />
+        {delivery.pinCode}
+
+        {delivery.mobile && (
+          <>
+            <br />
+            +91 {delivery.mobile}
+          </>
+        )}
+      </p>
+
+      {/* MAP SNAPSHOT */}
+      {delivery.latitude !== null &&
+        delivery.longitude !== null && (
+          <div className="mt-4 overflow-hidden rounded-[18px] border border-[#17351d]/10 bg-[#faf8ef]">
+            <div className="relative h-48 w-full overflow-hidden bg-[#dfe6dc] sm:h-56">
+              <iframe
+                title="Recipient delivery location"
+                className="pointer-events-none h-full w-full border-0"
+                loading="lazy"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                  Number(delivery.longitude) - 0.01
+                },${
+                  Number(delivery.latitude) - 0.01
+                },${
+                  Number(delivery.longitude) + 0.01
+                },${
+                  Number(delivery.latitude) + 0.01
+                }&layer=mapnik&marker=${
+                  delivery.latitude
+                },${delivery.longitude}`}
+              />
+
+              <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-[#17351d] shadow-sm backdrop-blur">
+                Recipient location
+              </div>
+            </div>
+
+            <div className="px-4 py-3">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
+                Exact delivery point
+              </p>
+
+              <p className="mt-1 text-xs text-[#17351d]/50">
+                {Number(delivery.latitude).toFixed(6)},{' '}
+                {Number(delivery.longitude).toFixed(6)}
+              </p>
+            </div>
+          </div>
+        )}
     </div>
   </div>
 ) : (
@@ -1266,8 +1351,8 @@ const fetchLocationFromLink = async () => {
       </p>
 
       <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
-        We'll automatically update this page when
-        they submit their location.
+        We'll automatically update this page when they submit
+        their location.
       </p>
     </div>
   </div>
