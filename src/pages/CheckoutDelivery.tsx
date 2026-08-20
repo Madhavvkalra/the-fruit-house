@@ -268,6 +268,10 @@ useEffect(() => {
     checkRecipientLocation()
   }
 
+const handlePageShow = () => {
+  checkRecipientLocation()
+}
+
   document.addEventListener(
     'visibilitychange',
     handleVisibilityChange
@@ -276,6 +280,11 @@ useEffect(() => {
   window.addEventListener(
     'focus',
     handleFocus
+  )
+
+  window.addEventListener(
+  'pageshow',
+  handlePageShow
   )
 
   return () => {
@@ -292,6 +301,12 @@ useEffect(() => {
       'focus',
       handleFocus
     )
+
+window.removeEventListener(
+  'pageshow',
+  handlePageShow
+)
+
   }
 }, [
   delivery.recipientType,
@@ -1530,7 +1545,6 @@ const fetchLocationFromLink = async () => {
 
           </div>
         )}
-
 
 
       </div>
