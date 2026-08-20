@@ -115,6 +115,71 @@ useEffect(() => {
   let cancelled = false
   let received = false
 
+  const applyRecipientLocation = (recipient: {
+    name?: string
+    location?: string
+    addressLine1?: string
+    addressLine2?: string
+    pinCode?: string
+    latitude?: number | null
+    longitude?: number | null
+  }) => {
+    if (cancelled) return
+
+    received = true
+
+    console.log(
+      'RECIPIENT LOCATION RECEIVED',
+      recipient
+    )
+
+    setRecipientLocationReceived(true)
+
+    updateDelivery(
+      'name',
+      recipient.name || ''
+    )
+
+    updateDelivery(
+      'location',
+      recipient.location || ''
+    )
+
+    updateDelivery(
+      'addressLine1',
+      recipient.addressLine1 || ''
+    )
+
+    updateDelivery(
+      'addressLine2',
+      recipient.addressLine2 || ''
+    )
+
+    updateDelivery(
+      'pinCode',
+      recipient.pinCode || ''
+    )
+
+    updateDelivery(
+      'latitude',
+      recipient.latitude ?? null
+    )
+
+    updateDelivery(
+      'longitude',
+      recipient.longitude ?? null
+    )
+
+    // Remember the received location locally.
+    localStorage.setItem(
+      'fruitHouseRecipientLocation',
+      JSON.stringify({
+        requestId: locationRequestId,
+        ...recipient,
+      })
+    )
+  }
+
   const checkRecipientLocation = async () => {
     if (cancelled || received) {
       return
@@ -135,29 +200,7 @@ useEffect(() => {
         return
       }
 
-      const text = await response.text()
-
-      let data: {
-        success?: boolean
-        saved?: boolean
-        location?: {
-          name?: string
-          location?: string
-          addressLine1?: string
-          addressLine2?: string
-          pinCode?: string
-          latitude?: number | null
-          longitude?: number | null
-        } | null
-      } = {}
-
-      try {
-        data = text
-          ? JSON.parse(text)
-          : {}
-      } catch {
-        return
-      }
+      const data = await response.json()
 
       if (
         cancelled ||
@@ -168,51 +211,7 @@ useEffect(() => {
         return
       }
 
-      received = true
-
-      const recipient = data.location
-
-      console.log(
-        'RECIPIENT LOCATION RECEIVED',
-        recipient
-      )
-
-      setRecipientLocationReceived(true)
-
-      updateDelivery(
-        'name',
-        recipient.name || ''
-      )
-
-      updateDelivery(
-        'location',
-        recipient.location || ''
-      )
-
-      updateDelivery(
-        'addressLine1',
-        recipient.addressLine1 || ''
-      )
-
-      updateDelivery(
-        'addressLine2',
-        recipient.addressLine2 || ''
-      )
-
-      updateDelivery(
-        'pinCode',
-        recipient.pinCode || ''
-      )
-
-      updateDelivery(
-        'latitude',
-        recipient.latitude ?? null
-      )
-
-      updateDelivery(
-        'longitude',
-        recipient.longitude ?? null
-      )
+      applyRecipientLocation(data.location)
     } catch (error) {
       if (!cancelled) {
         console.error(
@@ -223,18 +222,76 @@ useEffect(() => {
     }
   }
 
-  // Check immediately when the effect starts.
+  // Restore immediately if the recipient location
+  // was already received before this page opened.
+  try {
+    const saved = localStorage.getItem(
+      'fruitHouseRecipientLocation'
+    )
+
+    if (saved) {
+      const parsed = JSON.parse(saved)
+
+      if (
+        parsed?.requestId === locationRequestId
+      ) {
+        applyRecipientLocation(parsed)
+      }
+    }
+  } catch (error) {
+    console.error(
+      'Could not restore recipient location:',
+      error
+    )
+  }
+
+  // Check immediately.
   checkRecipientLocation()
 
-  // Continue checking every 2 seconds.
+  // Keep checking while the page is active.
   const interval = window.setInterval(
     checkRecipientLocation,
     2000
   )
 
+  // Check immediately when the browser/tab
+  // becomes active again.
+  const handleVisibilityChange = () => {
+    if (
+      document.visibilityState === 'visible'
+    ) {
+      checkRecipientLocation()
+    }
+  }
+
+  const handleFocus = () => {
+    checkRecipientLocation()
+  }
+
+  document.addEventListener(
+    'visibilitychange',
+    handleVisibilityChange
+  )
+
+  window.addEventListener(
+    'focus',
+    handleFocus
+  )
+
   return () => {
     cancelled = true
+
     window.clearInterval(interval)
+
+    document.removeEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+    )
+
+    window.removeEventListener(
+      'focus',
+      handleFocus
+    )
   }
 }, [
   delivery.recipientType,
