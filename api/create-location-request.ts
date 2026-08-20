@@ -3,53 +3,55 @@ import type {
   VercelResponse,
 } from '@vercel/node'
 
-type LocationRequest = {
-  requestId: string
-  createdAt: number
-  location: null
-}
-
-const requests = new Map<
-  string,
-  LocationRequest
->()
-
 export default function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({
+      success: false,
       error: 'Method not allowed',
     })
   }
 
-  const requestId =
-    `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 10)}`
+  try {
+    const requestId =
+      `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`
 
-  const host =
-    req.headers.host ||
-    'the-fruit-house.vercel.app'
+    const host =
+      req.headers.host ||
+      'the-fruit-house-5yh3.vercel.app'
 
-  const protocol =
-    req.headers['x-forwarded-proto'] ||
-    'https'
+    const forwardedProtocol =
+      req.headers['x-forwarded-proto']
 
-  const locationUrl =
-    `${protocol}://${host}/?recipientLocation=true&requestId=${encodeURIComponent(
-      requestId
-    )}`
+    const protocol =
+      typeof forwardedProtocol === 'string'
+        ? forwardedProtocol.split(',')[0]
+        : 'https'
 
-  requests.set(requestId, {
-    requestId,
-    createdAt: Date.now(),
-    location: null,
-  })
+    const locationUrl =
+      `${protocol}://${host}/?recipientLocation=true&requestId=${encodeURIComponent(
+        requestId
+      )}`
 
-  return res.status(200).json({
-    requestId,
-    locationUrl,
-  })
+    return res.status(200).json({
+      success: true,
+      requestId,
+      locationUrl,
+    })
+  } catch (error) {
+    console.error(
+      'Create location request error:',
+      error
+    )
+
+    return res.status(500).json({
+      success: false,
+      error:
+        'Could not create the location request.',
+    })
+  }
 }
