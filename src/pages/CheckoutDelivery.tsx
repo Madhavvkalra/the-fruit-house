@@ -87,6 +87,9 @@ const [locationRequestError, setLocationRequestError] =
 const [locationRequestId, setLocationRequestId] =
   useState('')
 
+const [recipientLocationReceived, setRecipientLocationReceived] =
+  useState(false)  
+
  useEffect(() => {
   if (
     delivery.recipientType !==
@@ -150,6 +153,8 @@ const [locationRequestId, setLocationRequestId] =
         ) {
           return
         }
+
+        setRecipientLocationReceived(true)
 
         const recipient =
           data.location
@@ -1228,11 +1233,47 @@ const fetchLocationFromLink = async () => {
       </p>
 
       <p className="mt-2 text-xs leading-5 text-[#17351d]/50">
-        Send this link to the person receiving the
-        order.
+  Send this link to the person receiving the
+  order.
+</p>
+
+{recipientLocationReceived ? (
+  <div className="mt-4 flex items-center gap-3 rounded-[16px] border border-[#17351d]/10 bg-[#efffb0]/50 p-4">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17351d] text-sm text-[#efffb0]">
+      ✓
+    </div>
+
+    <div>
+      <p className="text-sm font-semibold text-[#17351d]">
+        Recipient location received
       </p>
 
-      <div className="mt-3 flex gap-2">
+      <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
+        Their delivery details have been added to
+        this order.
+      </p>
+    </div>
+  </div>
+) : (
+  <div className="mt-4 flex items-center gap-3 rounded-[16px] border border-[#17351d]/10 bg-white/70 p-4">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17351d]/10 text-sm text-[#17351d]">
+      …
+    </div>
+
+    <div>
+      <p className="text-sm font-semibold text-[#17351d]">
+        Waiting for recipient
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
+        We'll automatically update this page when
+        they submit their location.
+      </p>
+    </div>
+  </div>
+)}
+
+<div className="mt-3 flex gap-2">
         <input
           type="text"
           readOnly
