@@ -1,4 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
+import type {
+  VercelRequest,
+  VercelResponse,
+} from '@vercel/node'
 
 type ResolveResponse = {
   latitude?: number
@@ -42,67 +45,144 @@ function extractCoordinates(url: string) {
   return null
 }
 
+async function reverseGeocode(
+  latitude: number,
+  longitude: number
+) {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+    {
+      headers: {
+        'User-Agent':
+          'The Fruit House Location Resolver/1.0',
+        Accept: 'application/json',
+      },
+    }
+  )
+
+  if (!response.ok) {
+    return null
+  }
+
+  const data = await response.json()
+  const address = data.address ?? {}
+
+  const city =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.suburb ||
+    address.county ||
+    ''
+
+  const state =
+    address.state || ''
+
+  const pincode =
+    address.postcode || ''
+
+  const location =
+    [city, state]
+      .filter(Boolean)
+      .join(', ')
+
+  return {
+    location:
+      location ||
+      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+    pincode,
+  }
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  res.setHeader(
+    'Content-Type',
+    'application/json'
+  )
+
   if (req.method !== 'POST') {
     return res.status(405).json({
+      success: false,
       error: 'Method not allowed',
     })
   }
 
   try {
-    const { url } = req.body ?? {}
+    const body = req.body ?? {}
+    const inputUrl = body.url
 
     if (
-      typeof url !== 'string' ||
-      !url.trim()
+      typeof inputUrl !== 'string' ||
+      !inputUrl.trim()
     ) {
       return res.status(400).json({
-        error: 'Google Maps URL is required.',
+        success: false,
+        error:
+          'Google Maps URL is required.',
       })
     }
 
-    const inputUrl = url.trim()
-
-    let resolvedUrl = inputUrl
+    const cleanUrl = inputUrl.trim()
 
     /*
-     * First try the URL exactly as provided.
-     * This handles normal Google Maps URLs
-     * containing coordinates.
+     * First try to extract coordinates directly
+     * from the URL.
      */
     let coordinates =
-      extractCoordinates(resolvedUrl)
+      extractCoordinates(cleanUrl)
 
     /*
-     * If the URL is a shortened Google Maps
-     * URL, follow the redirect server-side.
+     * If it is a shortened Google Maps URL,
+     * follow the redirect.
      */
     if (!coordinates) {
-      const response = await fetch(
-        inputUrl,
-        {
-          method: 'GET',
-          redirect: 'follow',
-          headers: {
-            'User-Agent':
-              'The Fruit House Location Resolver/1.0',
-          },
+      try {
+        const redirectResponse =
+          await fetch(cleanUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (compatible; The Fruit House Location Resolver/1.0)',
+              Accept:
+                'text/html,application/xhtml+xml',
+            },
+          })
+
+        const finalUrl =
+          redirectResponse.url || cleanUrl
+
+        coordinates =
+          extractCoordinates(finalUrl)
+
+        /*
+         * Sometimes the coordinates are present
+         * in the returned HTML even when they are
+         * not present in the final URL.
+         */
+        if (!coordinates) {
+          const html =
+            await redirectResponse.text()
+
+          coordinates =
+            extractCoordinates(html)
         }
-      )
-
-      resolvedUrl = response.url
-
-      coordinates =
-        extractCoordinates(resolvedUrl)
+      } catch (error) {
+        console.error(
+          'Google Maps redirect error:',
+          error
+        )
+      }
     }
 
     if (!coordinates) {
       return res.status(422).json({
+        success: false,
         error:
-          'Coordinates could not be found in this Google Maps link.',
+          'We could not find coordinates in this Google Maps link. Please copy the full Google Maps location URL.',
       })
     }
 
@@ -112,51 +192,37 @@ export default async function handler(
     } = coordinates
 
     /*
-     * Reverse geocode the coordinates using
-     * OpenStreetMap Nominatim.
+     * Reverse geocode.
+     *
+     * If Nominatim is temporarily unavailable,
+     * we still return valid coordinates rather
+     * than returning an empty response.
      */
-    const geocodeResponse =
-      await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
-        {
-          headers: {
-            'User-Agent':
-              'The Fruit House Location Resolver/1.0',
-          },
-        }
-      )
+    let location =
+      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
 
-    if (!geocodeResponse.ok) {
-      throw new Error(
-        'Reverse geocoding failed.'
+    let pincode = ''
+
+    try {
+      const geocoded =
+        await reverseGeocode(
+          latitude,
+          longitude
+        )
+
+      if (geocoded) {
+        location =
+          geocoded.location || location
+
+        pincode =
+          geocoded.pincode || ''
+      }
+    } catch (error) {
+      console.error(
+        'Reverse geocoding error:',
+        error
       )
     }
-
-    const geocodeData =
-      await geocodeResponse.json()
-
-    const address =
-      geocodeData.address ?? {}
-
-    const city =
-      address.city ||
-      address.town ||
-      address.village ||
-      address.suburb ||
-      address.county ||
-      ''
-
-    const state =
-      address.state || ''
-
-    const pincode =
-      address.postcode || ''
-
-    const location =
-      [city, state]
-        .filter(Boolean)
-        .join(', ') ||
-      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
 
     const result: ResolveResponse = {
       latitude,
@@ -165,7 +231,10 @@ export default async function handler(
       pincode,
     }
 
-    return res.status(200).json(result)
+    return res.status(200).json({
+      success: true,
+      ...result,
+    })
   } catch (error) {
     console.error(
       'Location resolver error:',
@@ -173,6 +242,7 @@ export default async function handler(
     )
 
     return res.status(500).json({
+      success: false,
       error:
         'Unable to resolve this Google Maps location.',
     })
