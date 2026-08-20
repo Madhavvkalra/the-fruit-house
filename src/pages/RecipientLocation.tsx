@@ -35,22 +35,13 @@ const handleSave = async () => {
 
   if (!requestId) {
     setSaveError(
-      'This location request is invalid or has expired.'
+      'This location link is missing its request ID.'
     )
     return
   }
 
   setSaving(true)
   setSaveError('')
-
-  const locationData = {
-    requestId,
-    name: name.trim(),
-    location: location.trim(),
-    addressLine1: addressLine1.trim(),
-    addressLine2: addressLine2.trim(),
-    pinCode: pinCode.replace(/\D/g, ''),
-  }
 
   try {
     const response = await fetch(
@@ -60,32 +51,75 @@ const handleSave = async () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(locationData),
+        body: JSON.stringify({
+          requestId,
+          name: name.trim(),
+          location: location.trim(),
+          addressLine1:
+            addressLine1.trim(),
+          addressLine2:
+            addressLine2.trim(),
+          pinCode:
+            pinCode.replace(/\D/g, ''),
+          latitude: null,
+          longitude: null,
+        }),
       }
     )
 
-    const data = await response.json()
+    const text =
+      await response.text()
 
-    if (!response.ok) {
+    let data: {
+      success?: boolean
+      location?: unknown
+      error?: string
+    } = {}
+
+    try {
+      data = text
+        ? JSON.parse(text)
+        : {}
+    } catch {
       throw new Error(
-        data?.error ||
-          'Could not save your location.'
+        'The server returned an invalid response.'
       )
     }
 
-    // Keep a local copy for development/testing.
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          'Could not save the delivery location.'
+      )
+    }
+
     localStorage.setItem(
       'fruitHouseRecipientLocation',
-      JSON.stringify(locationData)
+      JSON.stringify({
+        requestId,
+        name: name.trim(),
+        location: location.trim(),
+        addressLine1:
+          addressLine1.trim(),
+        addressLine2:
+          addressLine2.trim(),
+        pinCode:
+          pinCode.replace(/\D/g, ''),
+      })
     )
 
     setSaved(true)
     onSaved?.()
   } catch (error) {
+    console.error(
+      'Save recipient location error:',
+      error
+    )
+
     setSaveError(
       error instanceof Error
         ? error.message
-        : 'Could not save your location. Please try again.'
+        : 'Could not save the delivery location.'
     )
   } finally {
     setSaving(false)

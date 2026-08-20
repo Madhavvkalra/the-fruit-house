@@ -99,33 +99,86 @@ const createLocationRequest = async () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       }
     )
 
+    const text = await response.text()
+
+    console.log(
+      'CREATE LOCATION REQUEST',
+      response.status,
+      text
+    )
+
     if (!response.ok) {
+      let message =
+        'Could not create location request.'
+
+      try {
+        const errorData = text
+          ? JSON.parse(text)
+          : null
+
+        if (errorData?.error) {
+          message = errorData.error
+        }
+      } catch {
+        // Server did not return JSON.
+      }
+
+      throw new Error(message)
+    }
+
+    let data: {
+      success?: boolean
+      requestId?: string
+      locationUrl?: string
+      error?: string
+    }
+
+    try {
+      data = text
+        ? JSON.parse(text)
+        : {}
+    } catch {
       throw new Error(
-        'Could not create location request'
+        `Location server returned invalid response (${response.status}).`
       )
     }
 
-    const data = await response.json()
-
-    if (!data.locationUrl || !data.requestId) {
+    if (
+      !data.locationUrl ||
+      !data.requestId
+    ) {
       throw new Error(
-        'Invalid location request response'
+        data.error ||
+          'The location link could not be created.'
       )
     }
 
-    setLocationRequestUrl(data.locationUrl)
-    setLocationRequestId(data.requestId)
+    setLocationRequestUrl(
+      data.locationUrl
+    )
+
+    setLocationRequestId(
+      data.requestId
+    )
 
     updateDelivery(
       'locationMethod',
       'recipientLink'
     )
-  } catch {
+  } catch (error) {
+    console.error(
+      'Create location request error:',
+      error
+    )
+
     setLocationRequestError(
-      'Could not create a location link. Please try again.'
+      error instanceof Error
+        ? error.message
+        : 'Could not create a location link. Please try again.'
     )
   } finally {
     setLocationRequestLoading(false)

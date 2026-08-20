@@ -2,11 +2,19 @@ import type {
   VercelRequest,
   VercelResponse,
 } from '@vercel/node'
+import { neon } from '@neondatabase/serverless'
 
-export default function handler(
+const sql = neon(process.env.DATABASE_URL!)
+
+export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  res.setHeader(
+    'Content-Type',
+    'application/json'
+  )
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -79,35 +87,68 @@ export default function handler(
       })
     }
 
-    const savedLocation = {
-      requestId: requestId.trim(),
-      name: name.trim(),
-      location: location.trim(),
-      addressLine1: addressLine1.trim(),
-      addressLine2:
-        typeof addressLine2 === 'string'
-          ? addressLine2.trim()
-          : '',
-      pinCode,
-      latitude:
-        typeof latitude === 'number'
-          ? latitude
-          : null,
-      longitude:
-        typeof longitude === 'number'
-          ? longitude
-          : null,
-      savedAt: Date.now(),
+    const cleanRequestId =
+      requestId.trim()
+
+    const existing =
+      await sql`
+        SELECT request_id
+        FROM location_requests
+        WHERE request_id = ${cleanRequestId}
+        LIMIT 1
+      `
+
+    if (existing.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error:
+          'This location request does not exist or has expired.',
+      })
     }
 
-    console.log(
-      'Recipient location saved:',
-      savedLocation
-    )
+    const cleanAddressLine2 =
+      typeof addressLine2 === 'string'
+        ? addressLine2.trim()
+        : ''
+
+    const cleanLatitude =
+      typeof latitude === 'number' &&
+      Number.isFinite(latitude)
+        ? latitude
+        : null
+
+    const cleanLongitude =
+      typeof longitude === 'number' &&
+      Number.isFinite(longitude)
+        ? longitude
+        : null
+
+    await sql`
+      UPDATE location_requests
+      SET
+        name = ${name.trim()},
+        location = ${location.trim()},
+        address_line_1 = ${addressLine1.trim()},
+        address_line_2 = ${cleanAddressLine2},
+        pin_code = ${pinCode},
+        latitude = ${cleanLatitude},
+        longitude = ${cleanLongitude},
+        saved_at = NOW()
+      WHERE request_id = ${cleanRequestId}
+    `
 
     return res.status(200).json({
       success: true,
-      location: savedLocation,
+      location: {
+        requestId: cleanRequestId,
+        name: name.trim(),
+        location: location.trim(),
+        addressLine1: addressLine1.trim(),
+        addressLine2: cleanAddressLine2,
+        pinCode,
+        latitude: cleanLatitude,
+        longitude: cleanLongitude,
+      },
     })
   } catch (error) {
     console.error(

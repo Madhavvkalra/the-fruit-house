@@ -2,11 +2,19 @@ import type {
   VercelRequest,
   VercelResponse,
 } from '@vercel/node'
+import { neon } from '@neondatabase/serverless'
 
-export default function handler(
+const sql = neon(process.env.DATABASE_URL!)
+
+export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  res.setHeader(
+    'Content-Type',
+    'application/json'
+  )
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -19,6 +27,15 @@ export default function handler(
       `${Date.now()}-${Math.random()
         .toString(36)
         .slice(2, 10)}`
+
+    await sql`
+      INSERT INTO location_requests (
+        request_id
+      )
+      VALUES (
+        ${requestId}
+      )
+    `
 
     const host =
       req.headers.host ||
