@@ -1,19 +1,13 @@
-import type {
-  VercelRequest,
-  VercelResponse,
-} from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { neon } from '@neondatabase/serverless'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse
+  res: VercelResponse,
 ) {
-  res.setHeader(
-    'Content-Type',
-    'application/json'
-  )
+  res.setHeader('Content-Type', 'application/json')
 
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -23,10 +17,9 @@ export default async function handler(
   }
 
   try {
-    const requestId =
-      `${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 10)}`
+    const requestId = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`
 
     await sql`
       INSERT INTO location_requests (
@@ -38,11 +31,9 @@ export default async function handler(
     `
 
     const host =
-      req.headers.host ||
-      'the-fruit-house-5yh3.vercel.app'
+      req.headers.host || 'the-fruit-house-5yh3.vercel.app'
 
-    const forwardedProtocol =
-      req.headers['x-forwarded-proto']
+    const forwardedProtocol = req.headers['x-forwarded-proto']
 
     const protocol =
       typeof forwardedProtocol === 'string'
@@ -51,7 +42,7 @@ export default async function handler(
 
     const locationUrl =
       `${protocol}://${host}/?recipientLocation=true&requestId=${encodeURIComponent(
-        requestId
+        requestId,
       )}`
 
     return res.status(200).json({
@@ -60,15 +51,11 @@ export default async function handler(
       locationUrl,
     })
   } catch (error) {
-    console.error(
-      'Create location request error:',
-      error
-    )
+    console.error('Create location request error:', error)
 
     return res.status(500).json({
       success: false,
-      error:
-        'Could not create the location request.',
+      error: 'Could not create the location request.',
     })
   }
 }

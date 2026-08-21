@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import LocationPicker from './LocationPicker'
 
 export type DeliveryDetails = {
@@ -103,6 +103,9 @@ const [recipientLocationReceived, setRecipientLocationReceived] =
   const [locationLinkCopied, setLocationLinkCopied] =
   useState(false)
 
+  const [locationChecking, setLocationChecking] =
+  useState(false)
+
 useEffect(() => {
   if (
     delivery.recipientType !== 'someoneElse' ||
@@ -113,7 +116,6 @@ useEffect(() => {
   }
 
   let cancelled = false
-  let received = false
 
   const applyRecipientLocation = (recipient: {
     name?: string
@@ -126,7 +128,143 @@ useEffect(() => {
   }) => {
     if (cancelled) return
 
-    received = true
+    console.log(
+      'RECIPIENT LOCATION RECEIVED',
+      recipient
+    )
+
+    setRecipientLocationReceived(true)
+
+    updateDelivery('name', recipient.name || '')
+    updateDelivery('location', recipient.location || '')
+    updateDelivery('addressLine1', recipient.addressLine1 || '')
+    updateDelivery('addressLine2', recipient.addressLine2 || '')
+    updateDelivery('pinCode', recipient.pinCode || '')
+    updateDelivery('latitude', recipient.latitude ?? null)
+    updateDelivery('longitude', recipient.longitude ?? null)
+
+    localStorage.setItem(
+      'fruitHouseRecipientLocation',
+      JSON.stringify({
+        requestId: locationRequestId,
+        ...recipient,
+      })
+    )
+  }
+
+  const checkRecipientLocation = async () => {
+    if (cancelled) return
+
+    try {
+      const response = await fetch(
+        `/api/get-location-request?requestId=${encodeURIComponent(
+          locationRequestId
+        )}`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+        }
+      )
+
+      if (!response.ok) {
+        return
+      }
+
+      const data = await response.json()
+
+      if (
+        cancelled ||
+        !data.success ||
+        !data.saved ||
+        !data.location
+      ) {
+        return
+      }
+
+      applyRecipientLocation(data.location)
+    } catch (error) {
+      if (!cancelled) {
+        console.error(
+          'Recipient location check error:',
+          error
+        )
+      }
+    }
+  }
+
+  try {
+    const saved = localStorage.getItem(
+      'fruitHouseRecipientLocation'
+    )
+
+    if (saved) {
+      const parsed = JSON.parse(saved)
+
+      if (
+        parsed?.requestId === locationRequestId
+      ) {
+        applyRecipientLocation(parsed)
+      }
+    }
+  } catch (error) {
+    console.error(
+      'Could not restore recipient location:',
+      error
+    )
+  }
+
+  // Check once when the request becomes active.
+  checkRecipientLocation()
+
+  return () => {
+    cancelled = true
+  }
+}, [
+  delivery.recipientType,
+  delivery.locationMethod,
+  locationRequestId,
+  updateDelivery,
+])
+
+const handleCheckRecipientLocation = async () => {
+  if (
+    !locationRequestId ||
+    locationChecking ||
+    recipientLocationReceived
+  ) {
+    return
+  }
+
+  setLocationChecking(true)
+
+  try {
+    const response = await fetch(
+      `/api/get-location-request?requestId=${encodeURIComponent(
+        locationRequestId
+      )}`,
+      {
+        method: 'GET',
+        cache: 'no-store',
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(
+        'Could not check the recipient location.'
+      )
+    }
+
+    const data = await response.json()
+
+    if (
+      !data.success ||
+      !data.saved ||
+      !data.location
+    ) {
+      return
+    }
+
+    const recipient = data.location
 
     console.log(
       'RECIPIENT LOCATION RECEIVED',
@@ -170,7 +308,6 @@ useEffect(() => {
       recipient.longitude ?? null
     )
 
-    // Remember the received location locally.
     localStorage.setItem(
       'fruitHouseRecipientLocation',
       JSON.stringify({
@@ -178,142 +315,21 @@ useEffect(() => {
         ...recipient,
       })
     )
-  }
-
-  const checkRecipientLocation = async () => {
-    if (cancelled || received) {
-      return
-    }
-
-    try {
-      const response = await fetch(
-        `/api/get-location-request?requestId=${encodeURIComponent(
-          locationRequestId
-        )}`,
-        {
-          method: 'GET',
-          cache: 'no-store',
-        }
-      )
-
-      if (!response.ok) {
-        return
-      }
-
-      const data = await response.json()
-
-      if (
-        cancelled ||
-        !data.success ||
-        !data.saved ||
-        !data.location
-      ) {
-        return
-      }
-
-      applyRecipientLocation(data.location)
-    } catch (error) {
-      if (!cancelled) {
-        console.error(
-          'Recipient location check error:',
-          error
-        )
-      }
-    }
-  }
-
-  // Restore immediately if the recipient location
-  // was already received before this page opened.
-  try {
-    const saved = localStorage.getItem(
-      'fruitHouseRecipientLocation'
-    )
-
-    if (saved) {
-      const parsed = JSON.parse(saved)
-
-      if (
-        parsed?.requestId === locationRequestId
-      ) {
-        applyRecipientLocation(parsed)
-      }
-    }
   } catch (error) {
     console.error(
-      'Could not restore recipient location:',
+      'Manual recipient location check error:',
       error
     )
+
+    setLocationRequestError(
+      error instanceof Error
+        ? error.message
+        : 'Could not check the recipient location.'
+    )
+  } finally {
+    setLocationChecking(false)
   }
-
-  // Check immediately.
-  checkRecipientLocation()
-
-  // Keep checking while the page is active.
-  const interval = window.setInterval(
-    checkRecipientLocation,
-    2000
-  )
-
-  // Check immediately when the browser/tab
-  // becomes active again.
-  const handleVisibilityChange = () => {
-    if (
-      document.visibilityState === 'visible'
-    ) {
-      checkRecipientLocation()
-    }
-  }
-
-  const handleFocus = () => {
-    checkRecipientLocation()
-  }
-
-const handlePageShow = () => {
-  checkRecipientLocation()
 }
-
-  document.addEventListener(
-    'visibilitychange',
-    handleVisibilityChange
-  )
-
-  window.addEventListener(
-    'focus',
-    handleFocus
-  )
-
-  window.addEventListener(
-  'pageshow',
-  handlePageShow
-  )
-
-  return () => {
-    cancelled = true
-
-    window.clearInterval(interval)
-
-    document.removeEventListener(
-      'visibilitychange',
-      handleVisibilityChange
-    )
-
-    window.removeEventListener(
-      'focus',
-      handleFocus
-    )
-
-window.removeEventListener(
-  'pageshow',
-  handlePageShow
-)
-
-  }
-}, [
-  delivery.recipientType,
-  delivery.locationMethod,
-  locationRequestId,
-  updateDelivery,
-])
 
 const createLocationRequest = async () => {
   setLocationRequestLoading(true)
@@ -657,7 +673,7 @@ const fetchLocationFromLink = async () => {
 
   /*
    * ============================================================
-   * STEP 2A — EMAIL
+   * STEP 2A â€” EMAIL
    * ============================================================
    */
 
@@ -670,7 +686,7 @@ const fetchLocationFromLink = async () => {
           <div className="mx-auto w-full max-w-[760px]">
             <section className="w-full rounded-[26px] bg-[#17351d] p-5 text-white shadow-[0_18px_60px_rgba(8,21,11,.12)] sm:p-7">
               <p className="text-[8px] font-semibold uppercase tracking-[0.28em] text-[#efffb0]">
-                Step 2A · Account
+                Step 2A Â· Account
               </p>
 
               <h3 className="mt-2 font-playfair text-3xl italic">
@@ -738,7 +754,7 @@ const fetchLocationFromLink = async () => {
 
   /*
    * ============================================================
-   * STEP 2B — OTP + DELIVERY
+   * STEP 2B â€” OTP + DELIVERY
    * ============================================================
    */
 
@@ -802,7 +818,7 @@ const fetchLocationFromLink = async () => {
                 {!emailAuthenticated ? (
                   <>
                     <p className="text-[8px] font-semibold uppercase tracking-[0.28em] text-[#efffb0]">
-                      Step 2B · Email verification
+                      Step 2B Â· Email verification
                     </p>
 
                     <h3 className="mt-2 font-playfair text-3xl italic">
@@ -868,7 +884,7 @@ const fetchLocationFromLink = async () => {
                         }}
                         className="text-xs text-white/40 transition hover:text-white"
                       >
-                        ← Change email
+                        â† Change email
                       </button>
 
                       <span className="text-[9px] uppercase tracking-[0.14em] text-white/25">
@@ -879,7 +895,7 @@ const fetchLocationFromLink = async () => {
                 ) : (
                   <div className="flex items-center gap-4">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#efffb0] text-lg text-[#17351d]">
-                      ✓
+                      âœ“
                     </div>
 
                     <div className="min-w-0">
@@ -951,7 +967,7 @@ const fetchLocationFromLink = async () => {
                 : 'bg-[#efffb0] text-[#17351d]'
             }`}
           >
-            {savedAddressSelected ? '✓' : '⌂'}
+            {savedAddressSelected ? 'âœ“' : 'âŒ‚'}
           </div>
 
           <div className="min-w-0">
@@ -1078,8 +1094,8 @@ const fetchLocationFromLink = async () => {
                 }`}
               >
                 {delivery.recipientType === 'self'
-                  ? '✓'
-                  : '•'}
+                  ? 'âœ“'
+                  : 'â€¢'}
               </div>
 
               <div>
@@ -1121,8 +1137,8 @@ const fetchLocationFromLink = async () => {
                 }`}
               >
                 {delivery.recipientType === 'someoneElse'
-                  ? '✓'
-                  : '•'}
+                  ? 'âœ“'
+                  : 'â€¢'}
               </div>
 
               <div>
@@ -1141,7 +1157,7 @@ const fetchLocationFromLink = async () => {
         </div>
       </div>
 
-      {/* SOMEONE ELSE — LOCATION METHOD */}
+      {/* SOMEONE ELSE â€” LOCATION METHOD */}
 
       {delivery.recipientType === 'someoneElse' && (
         <div className="space-y-3 pt-1">
@@ -1167,7 +1183,7 @@ const fetchLocationFromLink = async () => {
             <div className="flex items-start gap-3">
 
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#efffb0]">
-                📍
+                ðŸ“
               </div>
 
               <div>
@@ -1202,7 +1218,7 @@ const fetchLocationFromLink = async () => {
             <div className="flex items-start gap-3">
 
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#efffb0]">
-                🔗
+                ðŸ”—
               </div>
 
               <div>
@@ -1312,7 +1328,7 @@ const fetchLocationFromLink = async () => {
           : 'bg-[#efffb0] text-[#17351d]'
       }`}
     >
-      ↗
+      â†—
     </div>
 
     <div>
@@ -1340,12 +1356,49 @@ const fetchLocationFromLink = async () => {
   order.
 </p>
 
+<button
+  type="button"
+  onClick={handleCheckRecipientLocation}
+  disabled={
+    locationChecking ||
+    recipientLocationReceived
+  }
+  className={`
+    mt-4
+    flex
+    h-11
+    w-full
+    items-center
+    justify-center
+    rounded-[14px]
+    border
+    text-sm
+    font-semibold
+    transition-all
+    active:scale-[0.98]
+
+    ${
+      recipientLocationReceived
+        ? 'border-[#17351d]/10 bg-[#efffb0] text-[#17351d]'
+        : locationChecking
+          ? 'cursor-wait border-[#17351d]/10 bg-[#17351d]/5 text-[#17351d]/40'
+          : 'border-[#17351d]/10 bg-white text-[#17351d] hover:bg-[#17351d] hover:text-white'
+    }
+  `}
+>
+  {recipientLocationReceived
+    ? '✓ Location received'
+    : locationChecking
+      ? 'Checking...'
+      : 'Check for location'}
+</button>
+
 {recipientLocationReceived ? (
   <div className="mt-4 overflow-hidden rounded-[20px] border border-[#17351d]/10 bg-white">
     {/* SUCCESS HEADER */}
     <div className="flex items-center gap-3 bg-[#efffb0]/50 px-4 py-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17351d] text-sm text-[#efffb0]">
-        ✓
+        âœ“
       </div>
 
       <div>
@@ -1437,7 +1490,7 @@ const fetchLocationFromLink = async () => {
 ) : (
   <div className="mt-4 flex items-center gap-3 rounded-[16px] border border-[#17351d]/10 bg-white/70 p-4">
     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#17351d]/10 text-sm text-[#17351d]">
-      …
+      â€¦
     </div>
 
     <div>
@@ -1487,7 +1540,7 @@ const fetchLocationFromLink = async () => {
       : 'bg-[#17351d] text-white hover:bg-[#244b2b]'
   }`}
 >
-  {locationLinkCopied ? '✓ Copied' : 'Copy'}
+  {locationLinkCopied ? 'âœ“ Copied' : 'Copy'}
 </button>
       </div>
 
@@ -1518,7 +1571,7 @@ const fetchLocationFromLink = async () => {
               disabled={locationLoading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-[#17351d]/15 bg-[#efffb0] px-4 text-sm font-semibold text-[#17351d] transition hover:bg-[#e6f59d] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
             >
-              <span>⌖</span>
+              <span>âŒ–</span>
 
               {locationLoading
                 ? 'Detecting location...'
@@ -1650,7 +1703,7 @@ const fetchLocationFromLink = async () => {
                 onClick={onBackToOrder}
                 className="w-full py-2 text-xs text-[#17351d]/45 transition hover:text-[#17351d]"
               >
-                ← Back to order
+                â† Back to order
               </button>
             </section>
           </div>
@@ -1706,3 +1759,4 @@ const fetchLocationFromLink = async () => {
     </>
   )
 }
+

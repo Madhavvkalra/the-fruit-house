@@ -1,19 +1,13 @@
-import type {
-  VercelRequest,
-  VercelResponse,
-} from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { neon } from '@neondatabase/serverless'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse
+  res: VercelResponse,
 ) {
-  res.setHeader(
-    'Content-Type',
-    'application/json'
-  )
+  res.setHeader('Content-Type', 'application/json')
 
   if (req.method !== 'GET') {
     return res.status(405).json({
@@ -55,51 +49,36 @@ export default async function handler(
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error:
-          'Location request not found.',
+        error: 'Location request not found.',
       })
     }
 
     const row = rows[0]
-
-    const saved =
-      row.saved_at !== null
+    const saved = row.saved_at !== null
 
     return res.status(200).json({
       success: true,
       saved,
       location: saved
         ? {
-            requestId:
-              row.request_id,
+            requestId: row.request_id,
             name: row.name,
-            location:
-              row.location,
-            addressLine1:
-              row.address_line_1,
-            addressLine2:
-              row.address_line_2,
-            pinCode:
-              row.pin_code,
-            latitude:
-              row.latitude,
-            longitude:
-              row.longitude,
-            savedAt:
-              row.saved_at,
+            location: row.location,
+            addressLine1: row.address_line_1,
+            addressLine2: row.address_line_2,
+            pinCode: row.pin_code,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            savedAt: row.saved_at,
           }
         : null,
     })
   } catch (error) {
-    console.error(
-      'Get location request error:',
-      error
-    )
+    console.error('Get location request error:', error)
 
     return res.status(500).json({
       success: false,
-      error:
-        'Could not retrieve the location request.',
+      error: 'Could not retrieve the location request.',
     })
   }
 }

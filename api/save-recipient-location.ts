@@ -1,19 +1,13 @@
-import type {
-  VercelRequest,
-  VercelResponse,
-} from '@vercel/node'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { neon } from '@neondatabase/serverless'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse
+  res: VercelResponse,
 ) {
-  res.setHeader(
-    'Content-Type',
-    'application/json'
-  )
+  res.setHeader('Content-Type', 'application/json')
 
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -78,25 +72,22 @@ export default async function handler(
 
     if (
       typeof pinCode !== 'string' ||
-      !/^\d{6}$/.test(pinCode)
+      !/^\d{6}$/.test(pinCode.trim())
     ) {
       return res.status(400).json({
         success: false,
-        error:
-          'A valid 6-digit pincode is required.',
+        error: 'A valid 6-digit pincode is required.',
       })
     }
 
-    const cleanRequestId =
-      requestId.trim()
+    const cleanRequestId = requestId.trim()
 
-    const existing =
-      await sql`
-        SELECT request_id
-        FROM location_requests
-        WHERE request_id = ${cleanRequestId}
-        LIMIT 1
-      `
+    const existing = await sql`
+      SELECT request_id
+      FROM location_requests
+      WHERE request_id = ${cleanRequestId}
+      LIMIT 1
+    `
 
     if (existing.length === 0) {
       return res.status(404).json({
@@ -106,10 +97,16 @@ export default async function handler(
       })
     }
 
+    const cleanName = name.trim()
+    const cleanLocation = location.trim()
+    const cleanAddressLine1 = addressLine1.trim()
+
     const cleanAddressLine2 =
       typeof addressLine2 === 'string'
         ? addressLine2.trim()
         : ''
+
+    const cleanPinCode = pinCode.trim()
 
     const cleanLatitude =
       typeof latitude === 'number' &&
@@ -126,11 +123,11 @@ export default async function handler(
     await sql`
       UPDATE location_requests
       SET
-        name = ${name.trim()},
-        location = ${location.trim()},
-        address_line_1 = ${addressLine1.trim()},
+        name = ${cleanName},
+        location = ${cleanLocation},
+        address_line_1 = ${cleanAddressLine1},
         address_line_2 = ${cleanAddressLine2},
-        pin_code = ${pinCode},
+        pin_code = ${cleanPinCode},
         latitude = ${cleanLatitude},
         longitude = ${cleanLongitude},
         saved_at = NOW()
@@ -141,25 +138,21 @@ export default async function handler(
       success: true,
       location: {
         requestId: cleanRequestId,
-        name: name.trim(),
-        location: location.trim(),
-        addressLine1: addressLine1.trim(),
+        name: cleanName,
+        location: cleanLocation,
+        addressLine1: cleanAddressLine1,
         addressLine2: cleanAddressLine2,
-        pinCode,
+        pinCode: cleanPinCode,
         latitude: cleanLatitude,
         longitude: cleanLongitude,
       },
     })
   } catch (error) {
-    console.error(
-      'Save recipient location error:',
-      error
-    )
+    console.error('Save recipient location error:', error)
 
     return res.status(500).json({
       success: false,
-      error:
-        'Could not save the recipient location.',
+      error: 'Could not save the recipient location.',
     })
   }
 }
