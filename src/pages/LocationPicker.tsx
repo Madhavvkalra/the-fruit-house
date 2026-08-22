@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
+  LocateFixed,
+  Search,
+  X,
+} from 'lucide-react'
+
+import {
   MapContainer,
   Marker,
   TileLayer,
@@ -283,15 +289,34 @@ function CurrentLocationButton({
         disabled:opacity-60
       "
     >
-      <span className="text-base">
-        ⌖
-      </span>
+      <LocateFixed
+  size={16}
+  strokeWidth={1.8}
+  aria-hidden="true"
+/>
 
       {loading
         ? 'Detecting...'
         : 'Use my location'}
     </button>
   )
+}
+
+function MapPositionController({
+  position,
+}: {
+  position: [number, number]
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    map.flyTo(position, 17, {
+      animate: true,
+      duration: 0.8,
+    })
+  }, [map, position])
+
+  return null
 }
 
 /* =========================================================
@@ -323,6 +348,133 @@ export default function LocationPicker({
 
   const [locationError, setLocationError] =
     useState('')
+
+  const [searchQuery, setSearchQuery] = useState('')
+const [searchLoading, setSearchLoading] = useState(false)
+
+const [, setSelectedLocation] = useState('')
+const [, setSelectedPincode] = useState('')
+
+const reverseGeocode = async (
+  latitude: number,
+  longitude: number
+) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Location lookup failed.')
+    }
+
+    const data = await response.json()
+    const address = data.address ?? {}
+
+    const locationText = [
+      address.road,
+      address.neighbourhood ||
+        address.suburb ||
+        address.city_district,
+      address.city ||
+        address.town ||
+        address.village,
+      address.state,
+    ]
+      .filter(Boolean)
+      .join(', ')
+
+    setSelectedLocation(
+      locationText ||
+        `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    )
+
+    setSelectedPincode(
+      address.postcode || ''
+    )
+  } catch (error) {
+    console.error(
+      'Reverse geocoding error:',
+      error
+    )
+
+    setSelectedLocation(
+      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+    )
+
+    setSelectedPincode('')
+  }
+}
+
+const searchLocation = async () => {
+  const query = searchQuery.trim()
+
+  if (!query) return
+
+  setSearchLoading(true)
+  setLocationError('')
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(
+        query
+      )}`,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(
+        'Could not search for this location.'
+      )
+    }
+
+    const results = await response.json()
+
+    if (!results.length) {
+      throw new Error(
+        'We could not find that location.'
+      )
+    }
+
+    const latitude = Number(results[0].lat)
+    const longitude = Number(results[0].lon)
+
+    setPosition([
+      latitude,
+      longitude,
+    ])
+
+    setSelectedLocation(
+      results[0].display_name || query
+    )
+
+    setSelectedPincode(
+      results[0].address?.postcode || ''
+    )
+  } catch (error) {
+    console.error(
+      'Location search error:',
+      error
+    )
+
+    setLocationError(
+      error instanceof Error
+        ? error.message
+        : 'Could not search for this location.'
+    )
+  } finally {
+    setSearchLoading(false)
+  }
+}
 
   return (
     <div
@@ -402,9 +554,13 @@ export default function LocationPicker({
             hover:text-white
             active:scale-90
           "
-        >
-          ×
-        </button>
+       >
+  <X
+    size={18}
+    strokeWidth={1.8}
+    aria-hidden="true"
+  />
+</button>
       </header>
 
       {/* =================================================
@@ -443,137 +599,225 @@ export default function LocationPicker({
           MAP
       ================================================= */}
 
-      <div
+  {/* LOCATION SEARCH */}
+
+  <div
+    className="
+      absolute
+      left-4
+      right-4
+      top-4
+      z-[1000]
+      mx-auto
+      max-w-[620px]
+    "
+  >
+    <form
+      onSubmit={(event) => {
+        event.preventDefault()
+        void searchLocation()
+      }}
+      className="
+        flex
+        items-center
+        gap-2
+        rounded-[16px]
+        border
+        border-[#17351d]/10
+        bg-white/95
+        p-1.5
+        shadow-[0_10px_30px_rgba(8,21,11,.16)]
+        backdrop-blur-xl
+      "
+    >
+      <Search
+        size={17}
+        strokeWidth={1.8}
+        className="ml-2 shrink-0 text-[#17351d]/45"
+        aria-hidden="true"
+      />
+
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(event) => {
+          setSearchQuery(event.target.value)
+          setLocationError('')
+        }}
+        placeholder="Search for a location"
         className="
-          relative
-          min-h-0
+          min-w-0
           flex-1
-          overflow-hidden
-          bg-[#dfe6dc]
+          bg-transparent
+          px-1
+          py-2
+          text-sm
+          text-[#17351d]
+          outline-none
+          placeholder:text-[#17351d]/30
+        "
+      />
+
+      <button
+        type="submit"
+        disabled={
+          searchLoading ||
+          !searchQuery.trim()
+        }
+        className="
+          flex
+          h-9
+          shrink-0
+          items-center
+          justify-center
+          rounded-[12px]
+          bg-[#17351d]
+          px-4
+          text-xs
+          font-semibold
+          text-white
+          transition
+          hover:bg-[#244b2b]
+          active:scale-[0.97]
+          disabled:cursor-not-allowed
+          disabled:opacity-40
         "
       >
-        <MapContainer
-          center={position}
-          zoom={15}
-          scrollWheelZoom={true}
-          dragging={true}
-          touchZoom={true}
-          doubleClickZoom={true}
-          zoomControl={true}
-          className="h-full w-full"
-          style={{
-            minHeight: '100%',
-            width: '100%',
-          }}
-        >
-          <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+        {searchLoading ? 'Searching...' : 'Search'}
+      </button>
+    </form>
+  </div>
 
-          <MapReady />
+  {/* MAP */}
 
-          <MapClickHandler
-            onSelect={(
-              latitude,
-              longitude
-            ) => {
-              setPosition([
-                latitude,
-                longitude,
-              ])
-              setLocationError('')
-            }}
-          />
+  <MapContainer
+    center={position}
+    zoom={15}
+    scrollWheelZoom={true}
+    dragging={true}
+    touchZoom={true}
+    doubleClickZoom={true}
+    zoomControl={true}
+    className="h-full w-full"
+    style={{
+      height: '100%',
+      width: '100%',
+    }}
+  >
+    <TileLayer
+      attribution="&copy; OpenStreetMap contributors"
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    />
 
-          <DraggableMarker
-            position={position}
-            onMove={(
-              latitude,
-              longitude
-            ) => {
-              setPosition([
-                latitude,
-                longitude,
-              ])
-              setLocationError('')
-            }}
-          />
+    <MapReady />
+    <MapPositionController position={position} />
 
-          <CurrentLocationButton
-            onLocation={(
-              latitude,
-              longitude
-            ) => {
-              setPosition([
-                latitude,
-                longitude,
-              ])
-              setLocationError('')
-            }}
-            loading={locationLoading}
-            setLoading={
-              setLocationLoading
-            }
-            setError={setLocationError}
-          />
-        </MapContainer>
+    <MapClickHandler
+      onSelect={(latitude, longitude) => {
+        setPosition([
+          latitude,
+          longitude,
+        ])
 
-        {/* =================================================
-            SELECTED POINT
-        ================================================= */}
+        setLocationError('')
 
-        <div
-          className="
-            pointer-events-none
-            absolute
-            bottom-4
-            left-4
-            right-4
-            z-[1000]
-          "
-        >
-          <div
-            className="
-              mx-auto
-              max-w-[620px]
-              rounded-[18px]
-              border
-              border-[#17351d]/10
-              bg-white/95
-              px-4
-              py-3
-              shadow-[0_12px_35px_rgba(8,21,11,.18)]
-              backdrop-blur-xl
-            "
-          >
-            <p
-              className="
-                text-[8px]
-                font-semibold
-                uppercase
-                tracking-[0.18em]
-                text-[#71864d]
-              "
-            >
-              Selected point
-            </p>
+        void reverseGeocode(
+          latitude,
+          longitude
+        )
+      }}
+    />
 
-            <p
-              className="
-                mt-1
-                text-xs
-                font-medium
-                text-[#17351d]/60
-              "
-            >
-              {position[0].toFixed(6)}
-              {', '}
-              {position[1].toFixed(6)}
-            </p>
-          </div>
-        </div>
-      </div>
+    <DraggableMarker
+      position={position}
+      onMove={(latitude, longitude) => {
+        setPosition([
+          latitude,
+          longitude,
+        ])
+
+        setLocationError('')
+
+        void reverseGeocode(
+          latitude,
+          longitude
+        )
+      }}
+    />
+
+    <CurrentLocationButton
+      onLocation={(latitude, longitude) => {
+        setPosition([
+          latitude,
+          longitude,
+        ])
+
+        setLocationError('')
+
+        void reverseGeocode(
+          latitude,
+          longitude
+        )
+      }}
+      loading={locationLoading}
+      setLoading={setLocationLoading}
+      setError={setLocationError}
+    />
+  </MapContainer>
+
+  {/* SELECTED POINT */}
+
+  <div
+    className="
+      pointer-events-none
+      absolute
+      bottom-4
+      left-4
+      right-4
+      z-[1000]
+    "
+  >
+    <div
+      className="
+        mx-auto
+        max-w-[620px]
+        rounded-[18px]
+        border
+        border-[#17351d]/10
+        bg-white/95
+        px-4
+        py-3
+        shadow-[0_12px_35px_rgba(8,21,11,.18)]
+        backdrop-blur-xl
+      "
+    >
+      <p
+        className="
+          text-[8px]
+          font-semibold
+          uppercase
+          tracking-[0.18em]
+          text-[#71864d]
+        "
+      >
+        Selected point
+      </p>
+
+      <p
+        className="
+          mt-1
+          text-xs
+          font-medium
+          text-[#17351d]/60
+        "
+      >
+        {position[0].toFixed(6)}, {position[1].toFixed(6)}
+      </p>
+    </div>
+  </div>
+
+      {/* 
+
 
       {/* =================================================
           ERROR

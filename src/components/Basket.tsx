@@ -297,7 +297,7 @@ max-w-[245px]
                   active:scale-90
                 "
               >
-                ↓
+                 ×
               </button>
             </div>
 

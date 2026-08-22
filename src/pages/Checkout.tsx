@@ -35,7 +35,7 @@ const coupons: Coupon[] = [
   {
     code: 'FRESH100',
     title: 'Fresh House',
-    description: 'Get ₹100 off on orders above ₹999',
+    description: 'Get 100 off on orders above 999',
     discountType: 'flat',
     discountValue: 100,
     minimumOrder: 999,
@@ -216,7 +216,9 @@ const updateDelivery = (
               active:scale-90
             "
           >
-            ×
+            <span aria-hidden="true" className="leading-none">
+              ×
+            </span>
           </button>
         </div>
       </header>
@@ -280,9 +282,7 @@ const updateDelivery = (
                       }
                     `}
                   >
-                    {completed
-                      ? '✓'
-                      : index + 1}
+                  {completed ? '✓' : index + 1}
                   </div>
 
                   <span
@@ -353,7 +353,7 @@ const updateDelivery = (
     "
   >
           {/* =================================================
-              STEP 1 — ORDER ONLY
+            STEP 1 - ORDER ONLY
           ================================================= */}
 
           {step === 'checkout' && (
@@ -375,21 +375,23 @@ const updateDelivery = (
               >
                 <div className="flex items-center gap-2.5">
                   <div
-                    className="
-                      flex
-                      h-7
-                      w-7
-                      shrink-0
-                      items-center
-                      justify-center
-                      rounded-full
-                      bg-[#efffb0]
-                      text-xs
-                      text-[#17351d]
-                    "
-                  >
-                    ✦
-                  </div>
+  className="
+    flex
+    h-7
+    w-7
+    shrink-0
+    items-center
+    justify-center
+    rounded-full
+    bg-[#efffb0]
+    text-xs
+    text-[#17351d]
+  "
+>
+  <span aria-hidden="true" className="font-semibold">
+    %
+  </span>
+</div>
 
                   <div>
                     <p
@@ -637,7 +639,7 @@ const updateDelivery = (
                             "
                           >
                             {item.variant.label}
-                            {' · '}
+                           {' · '}
                             Qty {item.quantity}
                           </p>
                         </div>
@@ -651,11 +653,10 @@ const updateDelivery = (
                             tabular-nums
                           "
                         >
-                          ₹
-                          {(
-                            item.variant.price *
-                            item.quantity
-                          ).toLocaleString('en-IN')}
+                         ₹{(
+  item.variant.price *
+  item.quantity
+).toLocaleString('en-IN')}
                         </span>
                       </div>
                     ))}
@@ -683,10 +684,9 @@ const updateDelivery = (
                       </span>
 
                       <span className="font-medium">
-                        ₹
-                        {basketTotal.toLocaleString(
-                          'en-IN'
-                        )}
+                    ₹{basketTotal.toLocaleString(
+  'en-IN'
+)}
                       </span>
                     </div>
 
@@ -699,10 +699,9 @@ const updateDelivery = (
                         </span>
 
                         <span className="font-medium text-[#71864d]">
-                          −₹
-                          {couponDiscount.toLocaleString(
-                            'en-IN'
-                          )}
+                         -₹{couponDiscount.toLocaleString(
+  'en-IN'
+)}
                         </span>
                       </div>
                     )}
@@ -715,12 +714,10 @@ const updateDelivery = (
                       </span>
 
                       <span className="font-medium text-[#71864d]">
-                        {deliveryCharge === 0
-                          ? 'Free'
-                          : `₹${deliveryCharge.toLocaleString(
-                              'en-IN'
-                            )}`}
-                      </span>
+                    {deliveryCharge === 0
+  ? 'Free'
+  : `₹${deliveryCharge.toLocaleString('en-IN')}`}
+                     </span>
                     </div>
 
                     {/* CONVENIENCE */}
@@ -731,12 +728,10 @@ const updateDelivery = (
                       </span>
 
                       <span className="font-medium">
-                        {convenienceFee === 0
-                          ? 'Free'
-                          : `₹${convenienceFee.toLocaleString(
-                              'en-IN'
-                            )}`}
-                      </span>
+                      {convenienceFee === 0
+  ? 'Free'
+  : `₹${convenienceFee.toLocaleString('en-IN')}`}
+                     </span>
                     </div>
                   </div>
 
@@ -786,10 +781,9 @@ const updateDelivery = (
                         tabular-nums
                       "
                     >
-                      ₹
-                      {grandTotal.toLocaleString(
-                        'en-IN'
-                      )}
+                     ₹{grandTotal.toLocaleString(
+  'en-IN'
+)}
                     </span>
                   </div>
                 </div>
@@ -798,7 +792,7 @@ const updateDelivery = (
           )}
 
                {/* =================================================
-          STEP 3 — PAYMENT
+          STEP 3 - PAYMENT
       ================================================= */}
 
       {step === 'payment' && (
@@ -951,7 +945,7 @@ const updateDelivery = (
       )}
 
       {/* =================================================
-          STEP 2 — DELIVERY
+          STEP 2 - DELIVERY
       ================================================= */}
 
       {step === 'delivery' && (
@@ -975,7 +969,7 @@ const updateDelivery = (
   </div>
 
   {/* =================================================
-      STEP 1 — CONTINUE BUTTON
+      STEP 1 - CONTINUE BUTTON
   ================================================= */}
 
   {step === 'checkout' && (
@@ -1025,3 +1019,4 @@ const updateDelivery = (
 </div>
   )
 }
+
