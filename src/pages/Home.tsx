@@ -520,23 +520,103 @@ return (
 
     </section>
 
+    {/* =====================================================
+        FRUIT SHOP
+    ===================================================== */}
+
+    <section
+      id="fruit-shop"
+      className="relative overflow-hidden bg-[#f5f3e8] px-5 py-20 text-[#17351d] sm:px-8 sm:py-24 md:px-12 md:py-28"
+    >
+
+      <div className="mx-auto max-w-7xl">
+
+        {/* SECTION HEADER */}
+
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+
+          <div className="max-w-2xl">
+
+            <p className="mb-4 text-[9px] font-semibold uppercase tracking-[0.32em] text-[#71864d] sm:text-[10px]">
+              From the world's finest growing regions
+            </p>
+
+            <h2 className="font-playfair text-[48px] leading-[0.9] italic sm:text-6xl md:text-7xl">
+              The Fruit Shop
+            </h2>
+
+            <p className="mt-5 max-w-xl text-sm leading-6 text-[#17351d]/55 sm:text-base sm:leading-7">
+              Extraordinary fruit, carefully selected from
+              extraordinary places.
+            </p>
+
+          </div>
+
+
+          {/* BASKET INDICATOR */}
+
+          <button
+            type="button"
+            onClick={() => setBasketOpen(true)}
+            className="hidden w-fit items-center gap-3 rounded-full border border-[#17351d]/15 bg-white/75 px-5 py-3 text-xs font-medium text-[#17351d] shadow-[0_8px_30px_rgba(8,21,11,.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#17351d] hover:text-white md:flex"
+          >
+
+            <span>
+              Basket
+            </span>
+
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#17351d] px-1.5 text-[9px] text-white">
+              <RollingNumber value={basketCount} />
+            </span>
+
+            <span className="text-[#17351d]/40">
+              <RollingNumber
+                value={basketTotal}
+                prefix="₹"
+              />
+            </span>
+
+          </button>
+
+        </div>
+
+
+        {/* PRODUCT GRID */}
+
+        <div className="mt-14 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:gap-6">
+
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              basket={basket}
+              onAddToBasket={addToBasket}
+              onUpdateBasketQuantity={updateBasketQuantity}
+              onOpenProduct={onOpenProduct}
+            />
+          ))}
+
+        </div>
+
+      </div>
+
+    </section>
 
     {/* =====================================================
         HAMPER STUDIO INVITATION
 
-        Carries the hero's deep green forward, then washes into the
-        fruit shop's warm off-white. Both entry options lead to the same
+        Closes the page: rises out of the fruit shop's warm off-white into
+        deep green and stays there, so the last thing on screen is the
+        gifting invitation. Both entry options lead to the same
         /hamper-studio route — this section only opens the door.
     ===================================================== */}
 
     <section
       id="hamper-studio"
-      className="relative overflow-hidden bg-[#0b1b0e] px-5 pb-24 pt-20 text-white sm:px-8 sm:pb-28 sm:pt-24 md:px-12 md:pt-28"
+      className="relative overflow-hidden bg-[#0b1b0e] px-5 pb-32 pt-20 text-white sm:px-8 sm:pb-36 sm:pt-24 md:px-12 md:pt-28"
     >
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/45 to-transparent" />
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-[#f5f3e8]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#f5f3e8] to-transparent" />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16">
 
@@ -668,88 +748,6 @@ return (
 
     </section>
 
-
-    {/* =====================================================
-        FRUIT SHOP
-    ===================================================== */}
-
-    <section
-      id="fruit-shop"
-      className="relative overflow-hidden bg-[#f5f3e8] px-5 py-20 text-[#17351d] sm:px-8 sm:py-24 md:px-12 md:py-28"
-    >
-
-      <div className="mx-auto max-w-7xl">
-
-        {/* SECTION HEADER */}
-
-        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-
-          <div className="max-w-2xl">
-
-            <p className="mb-4 text-[9px] font-semibold uppercase tracking-[0.32em] text-[#71864d] sm:text-[10px]">
-              From the world's finest growing regions
-            </p>
-
-            <h2 className="font-playfair text-[48px] leading-[0.9] italic sm:text-6xl md:text-7xl">
-              The Fruit Shop
-            </h2>
-
-            <p className="mt-5 max-w-xl text-sm leading-6 text-[#17351d]/55 sm:text-base sm:leading-7">
-              Extraordinary fruit, carefully selected from
-              extraordinary places.
-            </p>
-
-          </div>
-
-
-          {/* BASKET INDICATOR */}
-
-          <button
-            type="button"
-            onClick={() => setBasketOpen(true)}
-            className="hidden w-fit items-center gap-3 rounded-full border border-[#17351d]/15 bg-white/75 px-5 py-3 text-xs font-medium text-[#17351d] shadow-[0_8px_30px_rgba(8,21,11,.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#17351d] hover:text-white md:flex"
-          >
-
-            <span>
-              Basket
-            </span>
-
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#17351d] px-1.5 text-[9px] text-white">
-              <RollingNumber value={basketCount} />
-            </span>
-
-            <span className="text-[#17351d]/40">
-              <RollingNumber
-                value={basketTotal}
-                prefix="₹"
-              />
-            </span>
-
-          </button>
-
-        </div>
-
-
-        {/* PRODUCT GRID */}
-
-        <div className="mt-14 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:gap-6">
-
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              basket={basket}
-              onAddToBasket={addToBasket}
-              onUpdateBasketQuantity={updateBasketQuantity}
-              onOpenProduct={onOpenProduct}
-            />
-          ))}
-
-        </div>
-
-      </div>
-
-    </section>
 
   </main>
 )
