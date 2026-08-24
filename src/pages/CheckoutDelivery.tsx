@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react'
 import LocationPicker from './LocationPicker'
-
-import {
-  MapContainer,
-  Marker,
-  TileLayer,
-} from 'react-leaflet'
-
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { Loader2 } from 'lucide-react'
 
 export type DeliveryDetails = {
   name: string
@@ -16,7 +8,6 @@ export type DeliveryDetails = {
   recipientType: 'self' | 'someoneElse'
   locationMethod:
     | 'map'
-    | 'link'
     | 'recipientLink'
     | 'currentLocation'
     | null
@@ -61,24 +52,21 @@ const RECIPIENT_STORAGE_KEY = 'fruitHouseRecipientLocation'
 const REQUEST_ID_STORAGE_KEY = 'fruitHouseLocationRequestId'
 const REQUEST_URL_STORAGE_KEY = 'fruitHouseLocationRequestUrl'
 
-const deliverySnapshotIcon = L.divIcon({
-  className: 'fruit-house-delivery-snapshot-marker',
-  html: `
-    <div
-      style="
-        width: 30px;
-        height: 30px;
-        border-radius: 50% 50% 50% 0;
-        background: #17351d;
-        border: 3px solid #efffb0;
-        transform: rotate(-45deg);
-        box-shadow: 0 6px 18px rgba(8,21,11,.30);
-      "
-    ></div>
-  `,
-  iconSize: [30, 30],
-  iconAnchor: [15, 30],
-})
+// Builds a static OpenStreetMap embed URL for a given point. Used for
+// every "snapshot" preview card so previews always reflect the exact
+// coordinates passed in (no stale react-leaflet state, no z-index
+// surprises from Leaflet's internal panes/controls).
+function buildStaticMapEmbedUrl(
+  latitude: number,
+  longitude: number,
+  delta = 0.01
+) {
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${
+    longitude - delta
+  },${latitude - delta},${longitude + delta},${
+    latitude + delta
+  }&layer=mapnik&marker=${latitude},${longitude}`
+}
 
 export default function CheckoutDelivery({
   email,
@@ -97,6 +85,8 @@ export default function CheckoutDelivery({
   const [otpSent, setOtpSent] = useState(false)
   const [otp, setOtp] = useState('')
   const [otpError, setOtpError] = useState(false)
+  const [verifyingOtp, setVerifyingOtp] = useState(false)
+  const [continuingToPayment, setContinuingToPayment] = useState(false)
 
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState('')
@@ -113,103 +103,6 @@ export default function CheckoutDelivery({
   const [recipientLocationReceived, setRecipientLocationReceived] = useState(false)
   const [locationLinkCopied, setLocationLinkCopied] = useState(false)
   const [locationChecking, setLocationChecking] = useState(false)
-
-  
-  const [locationLink, setLocationLink] = useState('')
-  const [locationLinkLoading, setLocationLinkLoading] = useState(false)
-  const [locationLinkError, setLocationLinkError] = useState('')
-
-const [showPastedLocationPicker, setShowPastedLocationPicker] =
-  useState(false)
-
-const [pastedLocationLoading, setPastedLocationLoading] =
-  useState(false)
-
-const openPastedLocationPicker = async () => {
-  const value = locationLink.trim()
-
-  if (!value) {
-    setLocationLinkError('Please paste a location link.')
-    return
-  }
-
-  setPastedLocationLoading(true)
-  setLocationLinkError('')
-
-  try {
-    const response = await fetch('/api/resolve-location', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: value,
-      }),
-    })
-
-const responseText = await response.text()
-
-let data: any = {}
-
-try {
-  data = responseText ? JSON.parse(responseText) : {}
-} catch {
-  throw new Error(
-    `Location resolver returned an invalid response (${response.status}).`
-  )
-}
-
-if (!response.ok) {
-  
-      throw new Error(
-        data?.error || 'Unable to read this location link.'
-      )
-    }
-
-    if (
-      typeof data.latitude !== 'number' ||
-      typeof data.longitude !== 'number'
-    ) {
-      throw new Error(
-        'This location link does not contain valid coordinates.'
-      )
-    }
-
-    updateDelivery('latitude', data.latitude)
-    updateDelivery('longitude', data.longitude)
-
-    if (data.location) {
-      updateDelivery('location', data.location)
-    }
-
-    if (data.pincode) {
-      updateDelivery(
-        'pinCode',
-        String(data.pincode)
-      )
-    }
-
-    updateDelivery(
-      'locationMethod',
-      'link'
-    )
-
-    setShowPastedLocationPicker(true)
-  } catch (error) {
-    console.error(
-      'Pasted location error:',
-      error
-    )
-
-    setLocationLinkError(
-      error instanceof Error
-        ? error.message
-        : 'We could not read this location link.'
-    )
-  } finally {
-    setPastedLocationLoading(false)
-  }
-}
 
   const applyRecipientLocation = (recipient: RecipientLocation, requestId = locationRequestId) => {
     setRecipientLocationReceived(true)
@@ -437,59 +330,6 @@ if (!response.ok) {
     )
   }
 
-  const fetchLocationFromLink = async () => {
-    const value = locationLink.trim()
-
-    if (!value) {
-      setLocationLinkError('Please paste a Google Maps link.')
-      return
-    }
-
-    setLocationLinkLoading(true)
-    setLocationLinkError('')
-
-    try {
-      const response = await fetch('/api/resolve-location', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: value }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Unable to fetch this location.')
-      }
-
-      if (
-        typeof data.latitude !== 'number' ||
-        typeof data.longitude !== 'number'
-      ) {
-        throw new Error('The location did not contain valid coordinates.')
-      }
-
-      updateDelivery('latitude', data.latitude)
-      updateDelivery('longitude', data.longitude)
-      updateDelivery('locationMethod', 'link')
-      updateDelivery(
-        'location',
-        data.location ||
-          `${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}`
-      )
-
-      if (data.pincode) updateDelivery('pinCode', String(data.pincode))
-    } catch (error) {
-      console.error('Fetch location error:', error)
-      setLocationLinkError(
-        error instanceof Error
-          ? error.message
-          : 'We could not read this Google Maps link.'
-      )
-    } finally {
-      setLocationLinkLoading(false)
-    }
-  }
-
   const emailComplete =
     email.trim().length > 3 && email.includes('@') && email.includes('.')
 
@@ -501,7 +341,6 @@ if (!response.ok) {
         delivery.latitude !== null &&
         delivery.longitude !== null
       : delivery.locationMethod === 'map' ||
-          delivery.locationMethod === 'link' ||
           delivery.locationMethod === 'recipientLink'
         ? locationComplete &&
           delivery.latitude !== null &&
@@ -599,70 +438,23 @@ return (
             : null
         }
         onClose={() => setShowLocationPicker(false)}
-        onConfirm={(latitude, longitude) => {
+        onConfirm={(latitude, longitude, locationText, pincode) => {
           updateDelivery('latitude', latitude)
           updateDelivery('longitude', longitude)
           updateDelivery(
             'location',
-            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+            locationText && locationText.trim()
+              ? locationText
+              : `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           )
+          if (pincode) {
+            updateDelivery('pinCode', pincode)
+          }
           updateDelivery('locationMethod', 'map')
           setShowLocationPicker(false)
         }}
       />
     )}
-
-{showLocationPicker && (
-  <LocationPicker
-    initialLatitude={
-      delivery.latitude !== null
-        ? Number(delivery.latitude)
-        : null
-    }
-    initialLongitude={
-      delivery.longitude !== null
-        ? Number(delivery.longitude)
-        : null
-    }
-    onClose={() => setShowLocationPicker(false)}
-    onConfirm={(latitude, longitude) => {
-      updateDelivery('latitude', latitude)
-      updateDelivery('longitude', longitude)
-      updateDelivery(
-        'location',
-        `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-      )
-      updateDelivery('locationMethod', 'map')
-      setShowLocationPicker(false)
-    }}
-  />
-)}
-
-{showPastedLocationPicker && (
-  <LocationPicker
-    initialLatitude={
-      delivery.latitude !== null
-        ? Number(delivery.latitude)
-        : null
-    }
-    initialLongitude={
-      delivery.longitude !== null
-        ? Number(delivery.longitude)
-        : null
-    }
-    onClose={() => setShowPastedLocationPicker(false)}
-    onConfirm={(latitude, longitude) => {
-      updateDelivery('latitude', latitude)
-      updateDelivery('longitude', longitude)
-      updateDelivery('locationMethod', 'link')
-      updateDelivery(
-        'location',
-        `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-      )
-      setShowPastedLocationPicker(false)
-    }}
-  />
-)}
 
       <div className="relative w-full pb-32">
         <div className="w-full px-4 pt-5 sm:px-8 sm:pt-8">
@@ -941,55 +733,66 @@ return (
                           </div>
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => updateDelivery('locationMethod', 'link')}
-                          className={`w-full rounded-[18px] border p-4 text-left transition-all ${
-                            delivery.locationMethod === 'link'
-                              ? 'border-[#17351d] bg-[#17351d]/5 shadow-sm'
-                              : 'border-[#17351d]/10 bg-[#faf8ef]'
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#efffb0] text-[#17351d]">
-                              ↗
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold">Paste location link</p>
-                              <p className="mt-1 text-xs leading-5 text-[#17351d]/45">
-                                Paste their Google Maps location
-                              </p>
-                            </div>
-                          </div>
-                        </button>
+                        {delivery.locationMethod === 'map' &&
+                          delivery.latitude !== null &&
+                          delivery.longitude !== null && (
+                            <div className="isolate relative z-0 overflow-hidden rounded-[18px] border border-[#17351d]/10 bg-white">
+                              <div className="relative h-44 w-full overflow-hidden sm:h-52">
+                                <iframe
+                                  key={`${delivery.latitude}-${delivery.longitude}`}
+                                  title="Selected recipient location"
+                                  className="pointer-events-none h-full w-full border-0"
+                                  loading="lazy"
+                                  src={buildStaticMapEmbedUrl(
+                                    Number(delivery.latitude),
+                                    Number(delivery.longitude)
+                                  )}
+                                />
+                                <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-[#17351d] shadow-sm backdrop-blur">
+                                  Selected location
+                                </div>
+                              </div>
 
-                        {delivery.locationMethod === 'link' && (
-                          <div className="space-y-3">
-                            <input
-                              type="url"
-                              value={locationLink}
-                              placeholder="Paste Google Maps link"
-                              onChange={(event) => {
-                                setLocationLink(event.target.value)
-                                setLocationLinkError('')
-                              }}
-                              className="h-12 w-full rounded-[14px] border border-[#17351d]/10 bg-[#faf8ef] px-4 text-base outline-none transition placeholder:text-[#17351d]/25 focus:border-[#17351d]/30 focus:bg-white"
-                            />
-                            <button
-                              type="button"
-                              onClick={fetchLocationFromLink}
-                              disabled={locationLinkLoading || !locationLink.trim()}
-                              className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[#17351d] px-4 text-sm font-semibold text-white transition hover:bg-[#244b2b] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              {locationLinkLoading
-                                ? 'Fetching location...'
-                                : 'Fetch location'}
-                            </button>
-                            {locationLinkError && (
-                              <p className="text-xs text-red-700">{locationLinkError}</p>
-                            )}
-                          </div>
-                        )}
+                              <div className="p-4">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#71864d]">
+                                      Delivering to
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold text-[#17351d]">
+                                      {delivery.location}
+                                    </p>
+                                    <p className="mt-1 text-xs text-[#17351d]/45">
+                                      {Number(delivery.latitude).toFixed(6)},{' '}
+                                      {Number(delivery.longitude).toFixed(6)}
+                                    </p>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowLocationPicker(true)}
+                                    className="
+                                      shrink-0
+                                      rounded-full
+                                      border
+                                      border-[#17351d]/15
+                                      bg-[#faf8ef]
+                                      px-4
+                                      py-2
+                                      text-xs
+                                      font-semibold
+                                      text-[#17351d]
+                                      transition
+                                      hover:bg-[#efffb0]
+                                      active:scale-[0.97]
+                                    "
+                                  >
+                                    Change location
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                         <button
                           type="button"
@@ -999,7 +802,7 @@ return (
                             delivery.locationMethod === 'recipientLink'
                               ? 'border-[#17351d] bg-[#17351d]/5 shadow-sm'
                               : 'border-[#17351d]/10 bg-[#faf8ef]'
-                          } ${locationRequestLoading ? 'cursor-wait opacity-60' : ''}`}
+                          } ${locationRequestLoading ? 'cursor-wait opacity-70' : ''}`}
                         >
                           <div className="flex items-start gap-3">
                             <div
@@ -1009,10 +812,20 @@ return (
                                   : 'bg-[#efffb0] text-[#17351d]'
                               }`}
                             >
-                              {delivery.locationMethod === 'recipientLink' ? '✓' : '↗'}
+                              {locationRequestLoading ? (
+                                <Loader2 size={16} className="animate-spin" />
+                              ) : delivery.locationMethod === 'recipientLink' ? (
+                                '✓'
+                              ) : (
+                                '↗'
+                              )}
                             </div>
                             <div>
-                              <p className="text-sm font-semibold">Send them a location link</p>
+                              <p className="text-sm font-semibold">
+                                {locationRequestLoading
+                                  ? 'Creating your link...'
+                                  : 'Send them a location link'}
+                              </p>
                               <p className="mt-1 text-xs leading-5 text-[#17351d]/45">
                                 Create a link for them to add their own location
                               </p>
@@ -1189,36 +1002,23 @@ return (
     {delivery.latitude !== null &&
     delivery.longitude !== null &&
     delivery.location ? (
-      <div className="overflow-hidden rounded-[20px] border border-[#17351d]/10 bg-white">
-        {/* MAP SNAPSHOT */}
+      <div className="isolate relative z-0 overflow-hidden rounded-[20px] border border-[#17351d]/10 bg-white">
+        {/* MAP SNAPSHOT — driven by a plain iframe embed keyed to
+            the current coordinates, so it always reflects the
+            exact point just selected (no stale map state) and
+            never leaks a stray z-index over the fixed footer. */}
 
         <div className="relative h-52 w-full overflow-hidden sm:h-60">
-          <MapContainer
-            center={[
+          <iframe
+            key={`${delivery.latitude}-${delivery.longitude}`}
+            title="Selected delivery location"
+            className="pointer-events-none h-full w-full border-0"
+            loading="lazy"
+            src={buildStaticMapEmbedUrl(
               Number(delivery.latitude),
-              Number(delivery.longitude),
-            ]}
-            zoom={16}
-            scrollWheelZoom={false}
-            dragging={false}
-            touchZoom={false}
-            doubleClickZoom={false}
-            zoomControl={false}
-            attributionControl={false}
-            className="h-full w-full"
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
-            <Marker
-              position={[
-                Number(delivery.latitude),
-                Number(delivery.longitude),
-              ]}
-              icon={deliverySnapshotIcon}
-            />
-          </MapContainer>
+              Number(delivery.longitude)
+            )}
+          />
 
           {/* Snapshot label */}
 
@@ -1228,7 +1028,6 @@ return (
               absolute
               left-3
               top-3
-              z-[500]
               rounded-full
               bg-white/95
               px-3
@@ -1291,100 +1090,6 @@ return (
       </div>
     ) : (
       <div className="grid gap-3 sm:grid-cols-2">
-
-<button
-  type="button"
-  onClick={() => {
-    setLocationLink('')
-    setLocationLinkError('')
-  }}
-  className={`
-    flex
-    min-h-12
-    items-center
-    justify-center
-    gap-2
-    rounded-[14px]
-    border
-    border-[#17351d]/15
-    bg-white
-    px-4
-    py-3
-    text-sm
-    font-semibold
-    text-[#17351d]
-    transition
-    hover:bg-[#faf8ef]
-    active:scale-[0.98]
-    sm:col-span-2
-  `}
->
-  Paste location link
-</button>
-
-<div className="mt-3 space-y-3">
-  <input
-    type="url"
-    value={locationLink}
-    onChange={(event) => {
-      setLocationLink(event.target.value)
-      setLocationLinkError('')
-    }}
-    placeholder="Paste Google Maps, Apple Maps or location link"
-    className="
-      h-12
-      w-full
-      rounded-[14px]
-      border
-      border-[#17351d]/10
-      bg-[#faf8ef]
-      px-4
-      text-base
-      outline-none
-      transition
-      placeholder:text-[#17351d]/25
-      focus:border-[#17351d]/30
-      focus:bg-white
-    "
-  />
-
-  <button
-    type="button"
-    onClick={openPastedLocationPicker}
-    disabled={
-      pastedLocationLoading ||
-      !locationLink.trim()
-    }
-    className="
-      flex
-      h-12
-      w-full
-      items-center
-      justify-center
-      rounded-[14px]
-      bg-[#17351d]
-      px-4
-      text-sm
-      font-semibold
-      text-white
-      transition
-      hover:bg-[#244b2b]
-      active:scale-[0.98]
-      disabled:cursor-not-allowed
-      disabled:opacity-40
-    "
-  >
-    {pastedLocationLoading
-      ? 'Opening location...'
-      : 'Open location on map'}
-  </button>
-
-  {locationLinkError && (
-    <p className="text-xs text-red-700">
-      {locationLinkError}
-    </p>
-  )}
-</div>
 
         <button
           type="button"
@@ -1548,38 +1253,57 @@ return (
             {!emailAuthenticated ? (
               <button
                 type="button"
-                disabled={otp.length !== 6}
+                disabled={otp.length !== 6 || verifyingOtp}
                 onClick={() => {
-                  if (otp.length !== 6) return
-                  if (otp === '123456') {
-                    setEmailAuthenticated(true)
-                    setOtpError(false)
-                  } else {
-                    setOtpError(true)
-                  }
+                  if (otp.length !== 6 || verifyingOtp) return
+                  // Immediate feedback so the tap doesn't feel unresponsive,
+                  // even though the check itself is instant.
+                  setVerifyingOtp(true)
+                  window.requestAnimationFrame(() => {
+                    if (otp === '123456') {
+                      setEmailAuthenticated(true)
+                      setOtpError(false)
+                    } else {
+                      setOtpError(true)
+                    }
+                    setVerifyingOtp(false)
+                  })
                 }}
-                className={`flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold shadow-[0_12px_35px_rgba(8,21,11,.20)] transition active:scale-[0.98] ${
+                className={`flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_12px_35px_rgba(8,21,11,.20)] transition active:scale-[0.98] ${
                   otp.length === 6
                     ? 'bg-[#17351d] text-white hover:bg-[#244b2b]'
                     : 'cursor-not-allowed bg-[#17351d]/10 text-[#17351d]/30'
                 }`}
               >
-                Verify email
+                {verifyingOtp && (
+                  <Loader2 size={16} className="animate-spin" />
+                )}
+                {verifyingOtp ? 'Verifying...' : 'Verify email'}
               </button>
             ) : (
               <button
                 type="button"
-                disabled={!canContinueFromDelivery}
+                disabled={!canContinueFromDelivery || continuingToPayment}
                 onClick={() => {
-                  if (canContinueFromDelivery) onContinueToPayment()
+                  if (!canContinueFromDelivery || continuingToPayment) return
+                  // Show a spinner the instant this is tapped rather than
+                  // waiting on onContinueToPayment to resolve, so the
+                  // button never feels stuck or unresponsive.
+                  setContinuingToPayment(true)
+                  window.requestAnimationFrame(() => {
+                    onContinueToPayment()
+                  })
                 }}
-                className={`flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold shadow-[0_12px_35px_rgba(8,21,11,.20)] transition active:scale-[0.98] ${
+                className={`flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold shadow-[0_12px_35px_rgba(8,21,11,.20)] transition active:scale-[0.98] ${
                   canContinueFromDelivery
                     ? 'bg-[#17351d] text-white hover:bg-[#244b2b]'
                     : 'cursor-not-allowed bg-[#17351d]/10 text-[#17351d]/30'
                 }`}
               >
-                Continue to Payment
+                {continuingToPayment && (
+                  <Loader2 size={16} className="animate-spin" />
+                )}
+                {continuingToPayment ? 'Continuing...' : 'Continue to Payment'}
               </button>
             )}
           </div>

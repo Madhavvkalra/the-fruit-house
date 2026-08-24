@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   LocateFixed,
   Search,
@@ -20,7 +20,9 @@ type LocationPickerProps = {
   initialLongitude?: number | null
   onConfirm: (
     latitude: number,
-    longitude: number
+    longitude: number,
+    locationText?: string,
+    pincode?: string
   ) => void
   onClose: () => void
 }
@@ -352,8 +354,33 @@ export default function LocationPicker({
   const [searchQuery, setSearchQuery] = useState('')
 const [searchLoading, setSearchLoading] = useState(false)
 
-const [, setSelectedLocation] = useState('')
-const [, setSelectedPincode] = useState('')
+type LocationSuggestion = {
+  displayName: string
+  latitude: number
+  longitude: number
+  pincode: string
+}
+
+const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
+const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+const [showSuggestions, setShowSuggestions] = useState(false)
+const searchBoxRef = useRef<HTMLDivElement>(null)
+
+const [selectedLocation, setSelectedLocation] = useState('')
+const [selectedPincode, setSelectedPincode] = useState('')
+
+// Resolve an address label for the starting pin so the preview
+// (and a Confirm without moving the pin) reflects the exact point,
+// not a blank/placeholder value.
+useEffect(() => {
+  if (hasInitialLocation) {
+    void reverseGeocode(
+      initialLatitude as number,
+      initialLongitude as number
+    )
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [])
 
 const reverseGeocode = async (
   latitude: number,
@@ -460,6 +487,8 @@ const searchLocation = async () => {
     setSelectedPincode(
       results[0].address?.postcode || ''
     )
+
+    setShowSuggestions(false)
   } catch (error) {
     console.error(
       'Location search error:',
@@ -474,6 +503,91 @@ const searchLocation = async () => {
   } finally {
     setSearchLoading(false)
   }
+}
+
+// Live suggestions as the user types, debounced so we don't
+// fire a request on every keystroke.
+useEffect(() => {
+  const query = searchQuery.trim()
+
+  if (query.length < 3) {
+    setSuggestions([])
+    setSuggestionsLoading(false)
+    return
+  }
+
+  let cancelled = false
+  setSuggestionsLoading(true)
+
+  const timer = window.setTimeout(async () => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(
+          query
+        )}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Suggestion lookup failed.')
+      }
+
+      const results = await response.json()
+
+      if (cancelled) return
+
+      setSuggestions(
+        (results || []).map((result: any) => ({
+          displayName: result.display_name,
+          latitude: Number(result.lat),
+          longitude: Number(result.lon),
+          pincode: result.address?.postcode || '',
+        }))
+      )
+      setShowSuggestions(true)
+    } catch (error) {
+      if (!cancelled) {
+        console.error('Location suggestions error:', error)
+        setSuggestions([])
+      }
+    } finally {
+      if (!cancelled) setSuggestionsLoading(false)
+    }
+  }, 350)
+
+  return () => {
+    cancelled = true
+    window.clearTimeout(timer)
+  }
+}, [searchQuery])
+
+// Close the suggestions dropdown when clicking outside the search box.
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      searchBoxRef.current &&
+      !searchBoxRef.current.contains(event.target as Node)
+    ) {
+      setShowSuggestions(false)
+    }
+  }
+
+  document.addEventListener('mousedown', handleClickOutside)
+  return () =>
+    document.removeEventListener('mousedown', handleClickOutside)
+}, [])
+
+const chooseSuggestion = (suggestion: LocationSuggestion) => {
+  setPosition([suggestion.latitude, suggestion.longitude])
+  setSelectedLocation(suggestion.displayName)
+  setSelectedPincode(suggestion.pincode)
+  setSearchQuery(suggestion.displayName)
+  setShowSuggestions(false)
+  setLocationError('')
 }
 
   return (
@@ -596,99 +710,174 @@ const searchLocation = async () => {
       </div>
 
       {/* =================================================
-          MAP
+          LOCATION SEARCH — sits directly under the
+          instructions and above the map, in normal flow,
+          so it never floats on top of the map itself.
       ================================================= */}
 
-  {/* LOCATION SEARCH */}
-
-  <div
-    className="
-      absolute
-      left-4
-      right-4
-      top-4
-      z-[1000]
-      mx-auto
-      max-w-[620px]
-    "
-  >
-    <form
-      onSubmit={(event) => {
-        event.preventDefault()
-        void searchLocation()
-      }}
-      className="
-        flex
-        items-center
-        gap-2
-        rounded-[16px]
-        border
-        border-[#17351d]/10
-        bg-white/95
-        p-1.5
-        shadow-[0_10px_30px_rgba(8,21,11,.16)]
-        backdrop-blur-xl
-      "
-    >
-      <Search
-        size={17}
-        strokeWidth={1.8}
-        className="ml-2 shrink-0 text-[#17351d]/45"
-        aria-hidden="true"
-      />
-
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(event) => {
-          setSearchQuery(event.target.value)
-          setLocationError('')
-        }}
-        placeholder="Search for a location"
+      <div
+        ref={searchBoxRef}
         className="
-          min-w-0
-          flex-1
-          bg-transparent
-          px-1
-          py-2
-          text-sm
-          text-[#17351d]
-          outline-none
-          placeholder:text-[#17351d]/30
-        "
-      />
-
-      <button
-        type="submit"
-        disabled={
-          searchLoading ||
-          !searchQuery.trim()
-        }
-        className="
-          flex
-          h-9
+          relative
           shrink-0
-          items-center
-          justify-center
-          rounded-[12px]
-          bg-[#17351d]
-          px-4
-          text-xs
-          font-semibold
-          text-white
-          transition
-          hover:bg-[#244b2b]
-          active:scale-[0.97]
-          disabled:cursor-not-allowed
-          disabled:opacity-40
+          border-b
+          border-[#17351d]/10
+          bg-white/70
+          px-5
+          py-3
+          sm:px-8
         "
       >
-        {searchLoading ? 'Searching...' : 'Search'}
-      </button>
-    </form>
-  </div>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            void searchLocation()
+          }}
+          className="
+            mx-auto
+            flex
+            max-w-[620px]
+            items-center
+            gap-2
+            rounded-[16px]
+            border
+            border-[#17351d]/10
+            bg-white
+            p-1.5
+            shadow-[0_6px_18px_rgba(8,21,11,.08)]
+          "
+        >
+          <Search
+            size={17}
+            strokeWidth={1.8}
+            className="ml-2 shrink-0 text-[#17351d]/45"
+            aria-hidden="true"
+          />
 
-  {/* MAP */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value)
+              setLocationError('')
+            }}
+            onFocus={() => {
+              if (suggestions.length > 0) setShowSuggestions(true)
+            }}
+            placeholder="Search for a location"
+            className="
+              min-w-0
+              flex-1
+              bg-transparent
+              px-1
+              py-2
+              text-sm
+              text-[#17351d]
+              outline-none
+              placeholder:text-[#17351d]/30
+            "
+          />
+
+          <button
+            type="submit"
+            disabled={
+              searchLoading ||
+              !searchQuery.trim()
+            }
+            className="
+              flex
+              h-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-[12px]
+              bg-[#17351d]
+              px-4
+              text-xs
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#244b2b]
+              active:scale-[0.97]
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+            "
+          >
+            {searchLoading ? 'Searching...' : 'Search'}
+          </button>
+        </form>
+
+        {/* SUGGESTIONS DROPDOWN */}
+
+        {showSuggestions &&
+          (suggestions.length > 0 || suggestionsLoading) && (
+            <div
+              className="
+                absolute
+                left-5
+                right-5
+                top-full
+                z-[1100]
+                mx-auto
+                mt-1.5
+                max-w-[620px]
+                overflow-hidden
+                rounded-[16px]
+                border
+                border-[#17351d]/10
+                bg-white
+                shadow-[0_16px_40px_rgba(8,21,11,.18)]
+                sm:left-8
+                sm:right-8
+              "
+            >
+              {suggestionsLoading && suggestions.length === 0 ? (
+                <p className="px-4 py-3 text-xs text-[#17351d]/45">
+                  Searching...
+                </p>
+              ) : (
+                <ul>
+                  {suggestions.map((suggestion, index) => (
+                    <li
+                      key={`${suggestion.latitude}-${suggestion.longitude}-${index}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => chooseSuggestion(suggestion)}
+                        className="
+                          block
+                          w-full
+                          border-b
+                          border-[#17351d]/5
+                          px-4
+                          py-3
+                          text-left
+                          text-sm
+                          text-[#17351d]
+                          transition
+                          last:border-b-0
+                          hover:bg-[#faf8ef]
+                        "
+                      >
+                        {suggestion.displayName}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+      </div>
+
+
+      {/* =================================================
+          MAP — wrapped in its own relative, clipped
+          container so the "Selected point" overlay is
+          confined to the map area and can never drift
+          over the footer's Confirm button.
+      ================================================= */}
+
+      <div className="relative min-h-0 flex-1 overflow-hidden">
 
   <MapContainer
     center={position}
@@ -765,7 +954,8 @@ const searchLocation = async () => {
     />
   </MapContainer>
 
-  {/* SELECTED POINT */}
+  {/* SELECTED POINT — absolute within the map wrapper above,
+      so "bottom-4" is relative to the map area, not the screen. */}
 
   <div
     className="
@@ -803,12 +993,26 @@ const searchLocation = async () => {
         Selected point
       </p>
 
+      {selectedLocation && (
+        <p
+          className="
+            mt-1
+            break-words
+            text-xs
+            font-semibold
+            text-[#17351d]
+          "
+        >
+          {selectedLocation}
+        </p>
+      )}
+
       <p
         className="
-          mt-1
-          text-xs
+          mt-0.5
+          text-[11px]
           font-medium
-          text-[#17351d]/60
+          text-[#17351d]/50
         "
       >
         {position[0].toFixed(6)}, {position[1].toFixed(6)}
@@ -816,8 +1020,7 @@ const searchLocation = async () => {
     </div>
   </div>
 
-      {/* 
-
+      </div>
 
       {/* =================================================
           ERROR
@@ -887,7 +1090,9 @@ const searchLocation = async () => {
               onClick={() =>
                 onConfirm(
                   position[0],
-                  position[1]
+                  position[1],
+                  selectedLocation,
+                  selectedPincode
                 )
               }
               className="
