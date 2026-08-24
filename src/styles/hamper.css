@@ -1,0 +1,246 @@
+/**
+ * HAMPER STUDIO — ANIMATION LAYER
+ *
+ * Deliberately a separate stylesheet rather than an addition to `index.css`:
+ * the `@media (prefers-reduced-motion: reduce)` block opened partway through
+ * that file is never closed, so anything appended to the end of it would only
+ * apply to users who asked for LESS motion. That is a pre-existing issue in
+ * unrelated code and is left alone here.
+ *
+ * Motion brief: slow, weighted and quiet. No bouncing, no neon, no springy
+ * overshoot. The basket turns at the speed of a display stand, not a loader.
+ */
+
+/* =========================================================
+   3D REVOLVING BASKET
+
+   Built from CSS 3D transforms only. A cylinder is faked with N vertical
+   staves rotated around the Y axis, which is enough for a convincing woven
+   basket at a fraction of the cost of a WebGL dependency.
+========================================================= */
+
+.hamper-basket-3d {
+  perspective: 1100px;
+  perspective-origin: 50% 42%;
+}
+
+.hamper-basket-3d__spin {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: hamperBasketSpin 34s linear infinite;
+  will-change: transform;
+}
+
+/* Pause the turn while the customer is actively choosing, so reading the
+   basket contents does not become a moving target. */
+.hamper-basket-3d--paused .hamper-basket-3d__spin {
+  animation-play-state: paused;
+}
+
+.hamper-basket-3d__stave,
+.hamper-basket-3d__rim,
+.hamper-basket-3d__fruit,
+.hamper-basket-3d__base {
+  position: absolute;
+  backface-visibility: visible;
+}
+
+.hamper-basket-3d__fruit {
+  border-radius: 50%;
+  animation: hamperFruitSettle 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hamperBasketSpin {
+  from {
+    transform: rotateX(9deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(9deg) rotateY(360deg);
+  }
+}
+
+/* A new fruit is placed, not dropped — it settles the last few millimetres. */
+@keyframes hamperFruitSettle {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.82);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================================
+   FILL METER
+========================================================= */
+
+/* The used-slot count changes; the digits should acknowledge it, quietly. */
+.hamper-slot-count {
+  display: inline-block;
+  animation: hamperSlotTick 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes hamperSlotTick {
+  0% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hamper-pip {
+  transition:
+    background-color 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hamper-pip--filled {
+  animation: hamperPipFill 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes hamperPipFill {
+  0% {
+    transform: scaleY(0.4);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+.hamper-fill-bar {
+  transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* =========================================================
+   CAPACITY REFUSAL
+
+   When a fruit will not fit, the answer has to be unmistakable but calm — a
+   short settle, not a shake. Nothing is ever removed to make room.
+========================================================= */
+
+.hamper-refusal {
+  animation: hamperRefusal 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes hamperRefusal {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   QUOTES
+========================================================= */
+
+.hamper-quote-enter {
+  animation: hamperQuoteIn 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hamper-quote-exit {
+  animation: hamperQuoteOut 620ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes hamperQuoteIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes hamperQuoteOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(3px);
+  }
+}
+
+/* =========================================================
+   SECTION + CARD ENTRANCES
+========================================================= */
+
+.hamper-rise {
+  animation: hamperRise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hamperRise {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hamper-step-enter {
+  animation: hamperStepEnter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hamperStepEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+
+   Matches the intent of the existing convention in index.css: hold the final
+   visual state, remove the movement.
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .hamper-basket-3d__spin {
+    animation: none;
+    transform: rotateX(9deg) rotateY(-24deg);
+  }
+
+  .hamper-basket-3d__fruit,
+  .hamper-slot-count,
+  .hamper-pip--filled,
+  .hamper-refusal,
+  .hamper-quote-enter,
+  .hamper-quote-exit,
+  .hamper-rise,
+  .hamper-step-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .hamper-fill-bar,
+  .hamper-pip {
+    transition: none;
+  }
+}

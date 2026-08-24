@@ -11,11 +11,38 @@ import {
 
 import ProductCard from '../components/ProductCard'
 import RollingNumber from '../components/RollingNumber'
+import HamperBasket3D from '../components/hamper/HamperBasket3D'
+import HamperQuoteRotator from '../components/hamper/HamperQuoteRotator'
+
+import { computeTotals } from '../lib/hamperSlots'
+import type { StudioMode } from './HamperStudio'
 
 import {
   products,
   type Product,
 } from '../data/products'
+
+/**
+ * Display-only arrangement for the revolving basket on the home page. It is a
+ * showcase, not a cart item — the Hamper Studio always starts the customer from
+ * an empty basket. Ids are validated by the slot engine, so a renamed fruit
+ * simply drops out of the visual rather than breaking the page.
+ */
+const HAMPER_SHOWCASE_BASKET_ID = 'signature-basket'
+
+const HAMPER_SHOWCASE_SELECTION = {
+  'gala-apple': 6,
+  'american-cherries': 5,
+  'shine-muscat': 3,
+  'hass-kiwi': 4,
+  blueberries: 3,
+  'washington-pears': 2,
+}
+
+const hamperShowcase = computeTotals(
+  HAMPER_SHOWCASE_BASKET_ID,
+  HAMPER_SHOWCASE_SELECTION
+)
 
 type Variety = {
   name: string
@@ -90,6 +117,8 @@ type HomeProps = {
   ) => void
 
   onOpenProduct: (product: Product) => void
+
+  onOpenHamperStudio: (mode?: StudioMode) => void
 }
 
 export default function Home({
@@ -127,6 +156,7 @@ export default function Home({
   updateBasketQuantity,
 
   onOpenProduct,
+  onOpenHamperStudio,
 }: HomeProps) {
 
 return (
@@ -487,6 +517,154 @@ return (
 
         </div>
       )}
+
+    </section>
+
+
+    {/* =====================================================
+        HAMPER STUDIO INVITATION
+
+        Carries the hero's deep green forward, then washes into the
+        fruit shop's warm off-white. Both entry options lead to the same
+        /hamper-studio route — this section only opens the door.
+    ===================================================== */}
+
+    <section
+      id="hamper-studio"
+      className="relative overflow-hidden bg-[#0b1b0e] px-5 pb-24 pt-20 text-white sm:px-8 sm:pb-28 sm:pt-24 md:px-12 md:pt-28"
+    >
+
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/45 to-transparent" />
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-[#f5f3e8]" />
+
+      <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16">
+
+        {/* COPY + ENTRY OPTIONS */}
+
+        <div>
+
+          <p className="mb-4 text-[9px] font-semibold uppercase tracking-[0.32em] text-[#efffb0] sm:mb-5 sm:text-[10px]">
+            The Hamper Studio
+          </p>
+
+          <h2 className="leading-[0.92]">
+
+            <span className="font-playfair block text-[44px] font-normal italic sm:text-6xl md:text-[68px]">
+              Build something
+            </span>
+
+            <span className="font-playfair block text-[44px] font-normal italic sm:text-6xl md:text-[68px]">
+              worth gifting.
+            </span>
+
+          </h2>
+
+          <p className="mt-6 max-w-lg text-[13px] leading-6 text-white/60 sm:mt-7 sm:text-[15px] sm:leading-7">
+            Choose a basket, fill it slot by slot with fruit selected for
+            gifting, and watch the hamper take shape as you go. Everything
+            arrives through the same delivery you already know.
+          </p>
+
+
+          {/* TWO ENTRY OPTIONS */}
+
+          <div className="mt-9 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4">
+
+            <button
+              type="button"
+              onClick={() => onOpenHamperStudio('curated')}
+              className="group flex flex-col items-start rounded-[20px] border border-white/15 bg-white/[0.06] p-5 text-left backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.11] active:scale-[0.99] sm:p-6"
+            >
+
+              <span className="text-[8px] font-semibold uppercase tracking-[0.26em] text-[#efffb0]/75">
+                Ready to send
+              </span>
+
+              <span className="font-playfair mt-2.5 text-[24px] italic leading-tight sm:text-[26px]">
+                Premium Pre-Made
+                <br />
+                Hampers
+              </span>
+
+              <span className="mt-3 text-[11px] leading-5 text-white/50">
+                Four hampers built by us, each filled to the brim.
+              </span>
+
+              <span className="mt-5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                Browse hampers
+                <ArrowUpRight
+                  size={13}
+                  className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </span>
+
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenHamperStudio('build')}
+              className="group flex flex-col items-start rounded-[20px] border border-[#efffb0]/35 bg-[#efffb0] p-5 text-left text-[#17351d] transition-all duration-300 hover:-translate-y-0.5 hover:bg-white active:scale-[0.99] sm:p-6"
+            >
+
+              <span className="text-[8px] font-semibold uppercase tracking-[0.26em] text-[#17351d]/55">
+                Three steps
+              </span>
+
+              <span className="font-playfair mt-2.5 text-[24px] italic leading-tight sm:text-[26px]">
+                Build Your Own
+                <br />
+                Hamper
+              </span>
+
+              <span className="mt-3 text-[11px] leading-5 text-[#17351d]/55">
+                Pick the basket, choose the fruit, review and send.
+              </span>
+
+              <span className="mt-5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#17351d]">
+                Start building
+                <ArrowUpRight
+                  size={13}
+                  className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </span>
+
+            </button>
+
+          </div>
+
+
+          <div className="mt-12 hidden lg:block">
+            <HamperQuoteRotator tone="dark" />
+          </div>
+
+        </div>
+
+
+        {/* REVOLVING BASKET */}
+
+        <div className="flex flex-col items-center gap-8 lg:gap-10">
+
+          <div className="hamper-rise flex justify-center">
+            <HamperBasket3D
+              basket={hamperShowcase.basket}
+              lines={hamperShowcase.lines}
+              usedSlots={hamperShowcase.usedSlots}
+              capacity={hamperShowcase.capacity}
+              scale={isMobile ? 0.72 : 0.9}
+            />
+          </div>
+
+          <div className="lg:hidden">
+            <HamperQuoteRotator
+              tone="dark"
+              align="center"
+            />
+          </div>
+
+        </div>
+
+      </div>
 
     </section>
 

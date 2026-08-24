@@ -18,6 +18,12 @@ import ProductPopup from './components/ProductPopup'
 import Basket from './components/Basket'
 
 import Home from './pages/Home'
+import HamperStudio from './pages/HamperStudio'
+import type { StudioMode } from './pages/HamperStudio'
+
+import type { HamperCartEntry } from './lib/hamperCart'
+
+import './styles/hamper.css'
 
 const WHOLE_IMAGE_MOBILE = '/fruit-whole-mobile.png'
 const CUT_IMAGE_MOBILE = '/fruit-cut-mobile.png'
@@ -84,12 +90,15 @@ function getCoverMetrics(
 
 type AppProps = {
   routeProductId: string | null
+  hamperMode: StudioMode | null
 }
 
-function App({ routeProductId }: AppProps) {
+function App({ routeProductId, hamperMode }: AppProps) {
     const [isPageLoading, setIsPageLoading] = useState(true)
 
 const navigate = useNavigate()
+
+const isHamperStudio = hamperMode !== null
 
 const [isLoaderVisible, setIsLoaderVisible] = useState(true)
 
@@ -538,6 +547,19 @@ const basketTotal = basket.reduce(
     item.variant.price * item.quantity,
   0
 )
+
+// Hamper Studio -> existing cart + existing checkout.
+//
+// A finished hamper arrives as a ready-made { product, variant } pair from the
+// hamper cart adapter. It is dropped into the SAME basket via the SAME
+// addToBasket path as any shop product, then the existing checkout overlay is
+// opened. There is no hamper-specific cart, checkout, delivery or payment — a
+// hamper and a bag of apples travel the identical pipeline from here on.
+const addHamperToCart = (entry: HamperCartEntry) => {
+  addToBasket(entry.product, entry.variant)
+  navigate('/')
+  setCheckoutOpen(true)
+}
   
 
   useEffect(() => {
@@ -863,35 +885,50 @@ return (
 )}
 
      {/* =========================================================
-        HOME — HERO + FRUIT SHOP
+        HOME — HERO + FRUIT SHOP  (or the HAMPER STUDIO)
     ========================================================= */}
 
-    <Home
-      heroRef={heroRef}
-      imageRef={imageRef}
-      wholeImage={wholeImage}
-      cutImage={cutImage}
-      cursor={cursor}
-      lensRadius={lensRadius}
-      lensDiameter={lensDiameter}
-      showLens={showLens}
-      isMobile={isMobile}
-      isTouching={isTouching}
-      isAutoActive={isAutoActive}
-      activeFruit={activeFruit}
-     displayFruit={displayFruit}
+    {isHamperStudio ? (
+      <HamperStudio
+        initialMode={hamperMode ?? 'landing'}
+        onCheckoutHamper={addHamperToCart}
+        onExit={() => navigate('/')}
+      />
+    ) : (
+      <Home
+        heroRef={heroRef}
+        imageRef={imageRef}
+        wholeImage={wholeImage}
+        cutImage={cutImage}
+        cursor={cursor}
+        lensRadius={lensRadius}
+        lensDiameter={lensDiameter}
+        showLens={showLens}
+        isMobile={isMobile}
+        isTouching={isTouching}
+        isAutoActive={isAutoActive}
+        activeFruit={activeFruit}
+       displayFruit={displayFruit}
 basket={basket}
-      basketCount={basketCount}
-      basketTotal={basketTotal}
-      setBasketOpen={setBasketOpen}
-      setInsideHero={setInsideHero}
-      handlePointerDown={handlePointerDown}
-      handlePointerMove={handlePointerMove}
-      endTouchInteraction={endTouchInteraction}
-      addToBasket={addToBasket}
-      updateBasketQuantity={updateBasketQuantity}
-      onOpenProduct={openProduct}
-    />
+        basketCount={basketCount}
+        basketTotal={basketTotal}
+        setBasketOpen={setBasketOpen}
+        setInsideHero={setInsideHero}
+        handlePointerDown={handlePointerDown}
+        handlePointerMove={handlePointerMove}
+        endTouchInteraction={endTouchInteraction}
+        addToBasket={addToBasket}
+        updateBasketQuantity={updateBasketQuantity}
+        onOpenProduct={openProduct}
+        onOpenHamperStudio={(mode) =>
+          navigate(
+            mode && mode !== 'landing'
+              ? `/hamper-studio?mode=${mode}`
+              : '/hamper-studio'
+          )
+        }
+      />
+    )}
 
     {/* =========================================================
     PRODUCT DETAIL POPUP
