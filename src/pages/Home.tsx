@@ -89,17 +89,7 @@ type HomeProps = {
     change: number
   ) => void
 
-  setSelectedProduct: (
-    product: Product | null
-  ) => void
-
-  setSelectedProductImageIndex: (
-    index: number
-  ) => void
-
-  setSelectedPopupVariant: (
-    variant: Product['variants'][number]
-  ) => void
+  onOpenProduct: (product: Product) => void
 }
 
 export default function Home({
@@ -136,9 +126,7 @@ export default function Home({
   addToBasket,
   updateBasketQuantity,
 
-  setSelectedProduct,
-  setSelectedProductImageIndex,
-  setSelectedPopupVariant,
+  onOpenProduct,
 }: HomeProps) {
 
 return (
@@ -575,11 +563,7 @@ return (
               basket={basket}
               onAddToBasket={addToBasket}
               onUpdateBasketQuantity={updateBasketQuantity}
-              onOpenProduct={(product) => {
-                setSelectedProduct(product)
-                setSelectedProductImageIndex(0)
-                setSelectedPopupVariant(product.variants[0])
-              }}
+              onOpenProduct={onOpenProduct}
             />
           ))}
 

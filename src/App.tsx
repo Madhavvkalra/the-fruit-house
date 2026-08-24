@@ -4,10 +4,12 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import Checkout from './pages/Checkout'
 
 import {
+  products,
   type Product,
   type ProductVariant,
 } from './data/products'
@@ -16,7 +18,6 @@ import ProductPopup from './components/ProductPopup'
 import Basket from './components/Basket'
 
 import Home from './pages/Home'
-import RecipientLocation from './pages/RecipientLocation'
 
 const WHOLE_IMAGE_MOBILE = '/fruit-whole-mobile.png'
 const CUT_IMAGE_MOBILE = '/fruit-cut-mobile.png'
@@ -81,24 +82,14 @@ function getCoverMetrics(
 }
 
 
-function App() {
+type AppProps = {
+  routeProductId: string | null
+}
+
+function App({ routeProductId }: AppProps) {
     const [isPageLoading, setIsPageLoading] = useState(true)
 
-
-    
-const [isRecipientLocationPage, setIsRecipientLocationPage] =
-  useState(false)
-
-useEffect(() => {
-  const params = new URLSearchParams(
-    window.location.search
-  )
-
-  const isRecipient =
-    params.get('recipientLocation') === 'true'
-
-  setIsRecipientLocationPage(isRecipient)
-}, [])
+const navigate = useNavigate()
 
 const [isLoaderVisible, setIsLoaderVisible] = useState(true)
 
@@ -332,8 +323,57 @@ const closeProductPopup = () => {
     setSelectedPopupVariant(null)
     setSelectedProductImageIndex(0)
     setIsProductPopupClosing(false)
+
+    // Drop back to "/" only once the exit animation has finished, so the URL
+    // change cannot clear selectedProduct mid-animation.
+    navigate('/', { replace: true })
   }, 560)
 }
+
+// Opening a product is a real navigation, so the URL is shareable and the
+// browser back button closes the popup.
+const openProduct = (product: Product) => {
+  navigate(`/fruit/${product.id}`)
+}
+
+// "You may also like" swaps the product inside the already-open popup. Keep
+// the URL pointing at whatever is on screen, using replace so that back still
+// means "close the popup" instead of walking back through every product viewed.
+const selectPopupProduct = (product: Product | null) => {
+  setSelectedProduct(product)
+
+  if (product) {
+    navigate(`/fruit/${product.id}`, { replace: true })
+  }
+}
+
+// The URL is the source of truth for which product the popup shows.
+useEffect(() => {
+  if (isProductPopupClosing) return
+
+  if (!routeProductId) {
+    // Browser back from /fruit/:id — close via the normal path so the exit
+    // animation still plays.
+    if (selectedProduct) closeProductPopup()
+    return
+  }
+
+  if (selectedProduct?.id === routeProductId) return
+
+  const product = products.find(
+    (item) => item.id === routeProductId
+  )
+
+  if (!product) {
+    navigate('/', { replace: true })
+    return
+  }
+
+  setSelectedProduct(product)
+  setSelectedProductImageIndex(0)
+  setSelectedPopupVariant(product.variants[0])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [routeProductId, selectedProduct, isProductPopupClosing])
 
 const addToBasket = (
   product: Product,
@@ -763,10 +803,6 @@ const basketTotal = basket.reduce(
  const displayFruit =
   activeFruit && showLens ? activeFruit : null
 
-if (isRecipientLocationPage) {
-  return <RecipientLocation />
-}
-
 return (
   <main className="min-h-screen bg-[#08150b]">
 
@@ -854,9 +890,7 @@ basket={basket}
       endTouchInteraction={endTouchInteraction}
       addToBasket={addToBasket}
       updateBasketQuantity={updateBasketQuantity}
-      setSelectedProduct={setSelectedProduct}
-      setSelectedProductImageIndex={setSelectedProductImageIndex}
-      setSelectedPopupVariant={setSelectedPopupVariant}
+      onOpenProduct={openProduct}
     />
 
     {/* =========================================================
@@ -894,7 +928,7 @@ basket={basket}
       productImageDragX={productImageDragX}
       isProductImageDragging={isProductImageDragging}
       isProductChanging={isProductChanging}
-      setSelectedProduct={setSelectedProduct}
+      setSelectedProduct={selectPopupProduct}
       setSelectedPopupVariant={setSelectedPopupVariant}
       setSelectedProductImageIndex={setSelectedProductImageIndex}
       setIsProductChanging={setIsProductChanging}
