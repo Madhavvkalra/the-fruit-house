@@ -11,10 +11,8 @@ import {
 
 import ProductCard from '../components/ProductCard'
 import RollingNumber from '../components/RollingNumber'
-import HamperBasket3D from '../components/hamper/HamperBasket3D'
 import HamperQuoteRotator from '../components/hamper/HamperQuoteRotator'
 
-import { computeTotals } from '../lib/hamperSlots'
 import type { StudioMode } from './HamperStudio'
 
 import {
@@ -28,21 +26,6 @@ import {
  * an empty basket. Ids are validated by the slot engine, so a renamed fruit
  * simply drops out of the visual rather than breaking the page.
  */
-const HAMPER_SHOWCASE_BASKET_ID = 'signature-basket'
-
-const HAMPER_SHOWCASE_SELECTION = {
-  'gala-apple': 6,
-  'american-cherries': 5,
-  'shine-muscat': 3,
-  'hass-kiwi': 4,
-  blueberries: 3,
-  'washington-pears': 2,
-}
-
-const hamperShowcase = computeTotals(
-  HAMPER_SHOWCASE_BASKET_ID,
-  HAMPER_SHOWCASE_SELECTION
-)
 
 type Variety = {
   name: string
@@ -611,12 +594,36 @@ return (
         /hamper-studio route — this section only opens the door.
     ===================================================== */}
 
-    <section
-      id="hamper-studio"
-      className="relative overflow-hidden bg-[#0b1b0e] px-5 pb-32 pt-20 text-white sm:px-8 sm:pb-36 sm:pt-24 md:px-12 md:pt-28"
-    >
+   <section
+  id="hamper-studio"
+  className="
+    relative
+    overflow-hidden
+    bg-[#0b1b0e]
+    px-5
+    pb-32
+    pt-20
+    text-white
+    sm:px-8
+    sm:pb-36
+    sm:pt-24
+    md:px-12
+    md:pt-28
+  "
+>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#f5f3e8] to-transparent" />
+     <div
+  className="
+    pointer-events-none
+    absolute
+    inset-x-0
+    top-0
+    h-8
+    bg-gradient-to-b
+    from-[#f5f3e8]/25
+    to-transparent
+  "
+/>
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16">
 
@@ -725,15 +732,23 @@ return (
 
         <div className="flex flex-col items-center gap-8 lg:gap-10">
 
-          <div className="hamper-rise flex justify-center">
-            <HamperBasket3D
-              basket={hamperShowcase.basket}
-              lines={hamperShowcase.lines}
-              usedSlots={hamperShowcase.usedSlots}
-              capacity={hamperShowcase.capacity}
-              scale={isMobile ? 0.72 : 0.9}
-            />
-          </div>
+         <div className="hamper-rise flex justify-center">
+  <img
+    src="/hamper-basket.png"
+    alt="The Fruit House premium fruit hamper"
+    className="
+      pointer-events-none
+      w-full
+      max-w-[620px]
+      select-none
+      object-contain
+      drop-shadow-[0_30px_45px_rgba(0,0,0,0.35)]
+      sm:max-w-[680px]
+      lg:max-w-[720px]
+    "
+    draggable={false}
+  />
+</div>
 
           <div className="lg:hidden">
             <HamperQuoteRotator

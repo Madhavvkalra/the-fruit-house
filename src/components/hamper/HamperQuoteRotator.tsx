@@ -81,13 +81,13 @@ export default function HamperQuoteRotator({
         className={isExiting ? 'hamper-quote-exit' : 'hamper-quote-enter'}
       >
         <blockquote
-          className={`font-playfair text-[19px] italic leading-[1.5] sm:text-[21px] ${quoteColor}`}
-        >
+  className={`font-playfair text-[14px] italic leading-[1.4] sm:text-[16px] ${quoteColor}`}
+>
           {quote.quote}
         </blockquote>
 
         <figcaption
-          className={`mt-3 flex items-center gap-2.5 text-[9px] font-semibold uppercase tracking-[0.26em] ${authorColor} ${
+         className={`mt-2 flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.22em] ${authorColor} ${
             align === 'center' ? 'justify-center' : ''
           }`}
         >

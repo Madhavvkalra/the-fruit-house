@@ -49,7 +49,7 @@ import {
 } from '../lib/hamperStorage'
 
 import HamperBasket3D from '../components/hamper/HamperBasket3D'
-import HamperProgress from '../components/hamper/HamperProgress'
+import HamperCartPanel from '../components/hamper/HamperCartPanel'
 import HamperQuoteRotator from '../components/hamper/HamperQuoteRotator'
 import HamperFruitCard from '../components/hamper/HamperFruitCard'
 import HamperBasketCard from '../components/hamper/HamperBasketCard'
@@ -99,13 +99,7 @@ export default function HamperStudio({
   const [pendingBasketId, setPendingBasketId] = useState<string | null>(
     null
   )
-
-  // Transient "won't fit" acknowledgement for the fill panel.
-  const [refusal, setRefusal] = useState<{ key: number; text: string } | null>(
-    null
-  )
-  const refusalTimer = useRef(0)
-
+ 
   const baskets = availableHamperBaskets()
   const totals = useMemo(
     () => computeTotals(basketId, selection),
@@ -117,48 +111,25 @@ export default function HamperStudio({
     saveHamperDraft({ basketId, selection })
   }, [basketId, selection])
 
-  useEffect(() => {
-    return () => window.clearTimeout(refusalTimer.current)
-  }, [])
-
-  const showRefusal = (text: string) => {
-    window.clearTimeout(refusalTimer.current)
-    setRefusal((prev) => ({ key: (prev?.key ?? 0) + 1, text }))
-    refusalTimer.current = window.setTimeout(
-      () => setRefusal(null),
-      2600
-    )
-  }
 
   // ---- FRUIT ----------------------------------------------------------
 
-  const addFruit = (fruitId: string) => {
-    if (!canAdd(basketId, selection, fruitId, 1)) {
-      const fruit = hamperFruits.find((item) => item.id === fruitId)
-      const cost = fruit?.slotsPerUnit ?? 1
-      showRefusal(
-        cost > totals.remainingSlots
-          ? `Only ${totals.remainingSlots} ${
-              totals.remainingSlots === 1 ? 'slot' : 'slots'
-            } left — ${fruit?.name ?? 'that'} needs ${cost}.`
-          : 'This basket is full.'
-      )
-      return
+const addFruit = (fruitId: string) => {
+  if (!canAdd(basketId, selection, fruitId, 1)) {
+    return
+  }
+
+  setSelection((prev) => {
+    if (!canAdd(basketId, prev, fruitId, 1)) {
+      return prev
     }
 
-    setSelection((prev) => {
-      // Re-check against the freshest selection, not the one captured at
-      // render. If several clicks are batched into one tick they all read the
-      // same stale snapshot above, so without this the basket could overfill.
-      // Returning `prev` unchanged is a no-op, never a partial add.
-      if (!canAdd(basketId, prev, fruitId, 1)) return prev
-
-      return {
-        ...prev,
-        [fruitId]: (prev[fruitId] ?? 0) + 1,
-      }
-    })
-  }
+    return {
+      ...prev,
+      [fruitId]: (prev[fruitId] ?? 0) + 1,
+    }
+  })
+}
 
   const removeFruit = (fruitId: string) => {
     setSelection((prev) => {
@@ -311,14 +282,7 @@ export default function HamperStudio({
 
       {/* ================= BUILD ================= */}
       {mode === 'build' && (
-        <section className="mx-auto max-w-6xl px-5 py-8 md:px-8 md:py-12">
-          <ModeHeading
-            eyebrow="Build your own hamper"
-            title="Three steps"
-            blurb="Choose a basket, fill it to taste, and review before checkout."
-            onSwitch={() => setMode('curated')}
-            switchLabel="See pre-made"
-          />
+     <section className="mx-auto w-full max-w-[1500px] px-6 py-4 lg:px-8">
 
           <StepIndicator step={step} hasBasket={Boolean(basketId)} />
 
@@ -336,101 +300,96 @@ export default function HamperStudio({
             </div>
           )}
 
-          {/* STEP 2 — SELECT FRUITS */}
-          {step === 2 && basketId && (
-            <div className="hamper-step-enter mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,360px)_1fr]">
-              {/* LEFT — basket + fill + quote */}
-              <div className="lg:sticky lg:top-24 lg:self-start">
-                <div className="rounded-[26px] border border-[#17351d]/10 bg-white/60 p-6 shadow-[0_10px_36px_rgba(8,21,11,0.07)] backdrop-blur-sm">
-                  <div className="flex justify-center">
-                    <HamperBasket3D
-                      basket={totals.basket}
-                      lines={totals.lines}
-                      usedSlots={totals.usedSlots}
-                      capacity={totals.capacity}
-                      paused={false}
-                      scale={0.82}
-                    />
-                  </div>
+{/* STEP 2 — SELECT FRUITS */}
+{step === 2 && basketId && (
+  <div className="hamper-step-enter mt-3 grid min-h-0 grid-cols-1 gap-5 lg:h-[calc(100vh-155px)] lg:grid-cols-[minmax(520px,0.9fr)_minmax(0,1.6fr)]">
 
-                  <div className="mt-2">
-                    <HamperProgress
-                      usedSlots={totals.usedSlots}
-                      capacity={totals.capacity}
-                      remainingSlots={totals.remainingSlots}
-                      percentageFilled={totals.percentageFilled}
-                      isFull={totals.isFull}
-                    />
-                  </div>
+    {/* LEFT — CART */}
+    <div className="min-h-0 lg:h-full">
+      <div className="flex h-full min-h-0 flex-col">
 
-                  {refusal && (
-                    <p
-                      key={refusal.key}
-                      className="hamper-refusal mt-4 rounded-xl bg-[#17351d]/6 px-4 py-2.5 text-center text-[11px] font-medium text-[#17351d]/70"
-                    >
-                      {refusal.text}
-                    </p>
-                  )}
+        {/* CART */}
+        <div className="min-h-0 flex-1">
+          <HamperCartPanel
+            totals={totals}
+            onAdd={addFruit}
+            onRemove={removeFruit}
+          />
+        </div>
 
-                  <div className="mt-5 border-t border-[#17351d]/10 pt-5">
-                    <HamperQuoteRotator tone="light" align="center" />
-                  </div>
-                </div>
+        {/* QUOTE */}
+        <div className="mt-2 shrink-0 border-t border-[#17351d]/10 pt-2">
+          <HamperQuoteRotator
+            tone="light"
+            align="center"
+          />
+        </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  disabled={totals.isEmpty}
-                  className={`mt-4 flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
-                    totals.isEmpty
-                      ? 'cursor-not-allowed bg-[#17351d]/15 text-[#17351d]/40'
-                      : 'bg-[#17351d] text-white hover:bg-[#244b2b] active:scale-[0.98]'
-                  }`}
-                >
-                  Review hamper
-                </button>
+        {/* CONTINUE */}
+        <div className="mt-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setStep(3)}
+            disabled={totals.isEmpty}
+            className={`flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
+              totals.isEmpty
+                ? 'cursor-not-allowed bg-[#17351d]/15 text-[#17351d]/40'
+                : 'bg-[#17351d] text-white hover:bg-[#244b2b] active:scale-[0.98]'
+            }`}
+          >
+            Continue
+          </button>
+        </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="mt-3 w-full text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[#17351d]/50 underline-offset-4 transition hover:text-[#17351d] hover:underline"
-                >
-                  Change basket
-                </button>
-              </div>
+        {/* CHANGE BASKET */}
+        <button
+          type="button"
+          onClick={() => setStep(1)}
+          className="mt-1.5 shrink-0 w-full text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-[#17351d]/45 underline-offset-4 transition hover:text-[#17351d] hover:underline"
+        >
+          Change basket
+        </button>
 
-              {/* RIGHT — fruit catalogue */}
-              <div>
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-[#71864d]">
-                    Festive fruit catalogue
-                  </p>
-                  <p className="text-[10px] text-[#17351d]/45">
-                    {totals.remainingSlots} of {totals.capacity} slots
-                    open
-                  </p>
-                </div>
+      </div>
+    </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {hamperFruits.map((fruit) => (
-                    <HamperFruitCard
-                      key={fruit.id}
-                      fruit={fruit}
-                      units={selection[fruit.id] ?? 0}
-                      canAddOne={canAdd(
-                        basketId,
-                        selection,
-                        fruit.id,
-                        1
-                      )}
-                      onAdd={addFruit}
-                      onRemove={removeFruit}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+
+    {/* RIGHT — FRUIT CATALOGUE */}
+    <div className="min-h-0 lg:h-full lg:overflow-y-auto lg:pr-2">
+
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-[#71864d]">
+          Festive fruit catalogue
+        </p>
+
+        <p className="text-[10px] text-[#17351d]/45">
+          {totals.remainingSlots} of {totals.capacity} slots open
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+
+        {hamperFruits.map((fruit) => (
+          <HamperFruitCard
+            key={fruit.id}
+            fruit={fruit}
+            units={selection[fruit.id] ?? 0}
+            canAddOne={canAdd(
+              basketId,
+              selection,
+              fruit.id,
+              1
+            )}
+            onAdd={addFruit}
+            onRemove={removeFruit}
+          />
+        ))}
+
+      </div>
+    </div>
+
+  </div>
+)}
 
           {/* STEP 3 — REVIEW & CHECKOUT */}
           {step === 3 && (
@@ -616,7 +575,7 @@ function StepIndicator({
   ]
 
   return (
-    <div className="mt-6 flex items-center gap-2 sm:gap-4">
+    <div className="mt-2 flex items-center gap-2 sm:gap-4">
       {steps.map((entry, index) => {
         const done =
           entry.n < step && (entry.n > 1 || hasBasket)
