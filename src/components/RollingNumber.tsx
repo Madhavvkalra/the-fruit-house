@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type RollingNumberProps = {
   value: number
@@ -10,14 +10,54 @@ export default function RollingNumber({
   prefix = '',
 }: RollingNumberProps) {
   const [displayValue, setDisplayValue] = useState(value)
+  const previousValue = useRef(value)
 
   useEffect(() => {
-    setDisplayValue(value)
+    const from = previousValue.current
+    const to = value
+
+    if (from === to) return
+
+    const duration = 520
+    const startTime = performance.now()
+
+    let animationFrame = 0
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Smooth ease-out
+      const eased =
+        1 - Math.pow(1 - progress, 3)
+
+      const nextValue = Math.round(
+        from + (to - from) * eased
+      )
+
+      setDisplayValue(nextValue)
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate)
+      } else {
+        setDisplayValue(to)
+        previousValue.current = to
+      }
+    }
+
+    animationFrame = requestAnimationFrame(animate)
+
+    return () => {
+      cancelAnimationFrame(animationFrame)
+    }
   }, [value])
 
   return (
     <span className="inline-flex overflow-hidden">
-      <span className="inline-block tabular-nums">
+      <span
+        key={displayValue}
+        className="inline-block tabular-nums"
+      >
         {prefix}
         {displayValue.toLocaleString('en-IN')}
       </span>

@@ -20,6 +20,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Check, Sparkles } from 'lucide-react'
 
+
+
 import {
   availableHamperBaskets,
   getHamperBasket,
@@ -50,6 +52,7 @@ import {
 
 import HamperBasket3D from '../components/hamper/HamperBasket3D'
 import HamperCartPanel from '../components/hamper/HamperCartPanel'
+import HamperMobileCart from '../components/hamper/HamperMobileCart'
 import HamperQuoteRotator from '../components/hamper/HamperQuoteRotator'
 import HamperFruitCard from '../components/hamper/HamperFruitCard'
 import HamperBasketCard from '../components/hamper/HamperBasketCard'
@@ -302,98 +305,105 @@ const addFruit = (fruitId: string) => {
 
 {/* STEP 2 — SELECT FRUITS */}
 {step === 2 && basketId && (
-  <div className="hamper-step-enter mt-3 grid min-h-0 grid-cols-1 gap-5 lg:h-[calc(100vh-155px)] lg:grid-cols-[minmax(520px,0.9fr)_minmax(0,1.6fr)]">
+  <>
+    {/* STEP 2 CONTENT */}
+    <div className="mt-3 grid min-h-0 grid-cols-1 gap-5 lg:h-[calc(100vh-155px)] lg:grid-cols-[minmax(520px,0.9fr)_minmax(0,1.6fr)]">
 
-    {/* LEFT — CART */}
-    <div className="min-h-0 lg:h-full">
-      <div className="flex h-full min-h-0 flex-col">
+      {/* LEFT — DESKTOP CART */}
+      <div className="hidden min-h-0 lg:block lg:h-full">
+        <div className="flex h-full min-h-0 flex-col">
 
-        {/* CART */}
-        <div className="min-h-0 flex-1">
-          <HamperCartPanel
-            totals={totals}
-            onAdd={addFruit}
-            onRemove={removeFruit}
-          />
-        </div>
+          <div className="min-h-0 flex-1">
+            <HamperCartPanel
+              totals={totals}
+              onAdd={addFruit}
+              onRemove={removeFruit}
+            />
+          </div>
 
-        {/* QUOTE */}
-        <div className="mt-2 shrink-0 border-t border-[#17351d]/10 pt-2">
-          <HamperQuoteRotator
-            tone="light"
-            align="center"
-          />
-        </div>
+          <div className="mt-2 shrink-0 border-t border-[#17351d]/10 pt-2">
+            <HamperQuoteRotator
+              tone="light"
+              align="center"
+            />
+          </div>
 
-        {/* CONTINUE */}
-        <div className="mt-2 shrink-0">
+          <div className="mt-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setStep(3)}
+              disabled={totals.isEmpty}
+              className={`flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
+                totals.isEmpty
+                  ? 'cursor-not-allowed bg-[#17351d]/15 text-[#17351d]/40'
+                  : 'bg-[#17351d] text-white hover:bg-[#244b2b] active:scale-[0.98]'
+              }`}
+            >
+              Continue
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setStep(3)}
-            disabled={totals.isEmpty}
-            className={`flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold transition-all duration-300 ${
-              totals.isEmpty
-                ? 'cursor-not-allowed bg-[#17351d]/15 text-[#17351d]/40'
-                : 'bg-[#17351d] text-white hover:bg-[#244b2b] active:scale-[0.98]'
-            }`}
+            onClick={() => setStep(1)}
+            className="mt-1.5 w-full shrink-0 text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-[#17351d]/45 underline-offset-4 transition hover:text-[#17351d] hover:underline"
           >
-            Continue
+            Change basket
           </button>
+
+        </div>
+      </div>
+
+      {/* RIGHT — FRUIT CATALOGUE */}
+      <div className="min-h-0 lg:h-full lg:overflow-y-auto lg:pr-2">
+
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-[#71864d]">
+            Festive fruit catalogue
+          </p>
+
+          <p className="text-[10px] text-[#17351d]/45">
+            {totals.remainingSlots} of {totals.capacity} slots open
+          </p>
         </div>
 
-        {/* CHANGE BASKET */}
-        <button
-          type="button"
-          onClick={() => setStep(1)}
-          className="mt-1.5 shrink-0 w-full text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-[#17351d]/45 underline-offset-4 transition hover:text-[#17351d] hover:underline"
-        >
-          Change basket
-        </button>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {hamperFruits.map((fruit) => (
+            <HamperFruitCard
+              key={fruit.id}
+              fruit={fruit}
+              units={selection[fruit.id] ?? 0}
+              canAddOne={canAdd(
+                basketId,
+                selection,
+                fruit.id,
+                1
+              )}
+              onAdd={addFruit}
+              onRemove={removeFruit}
+            />
+          ))}
+        </div>
 
       </div>
+
     </div>
 
-
-    {/* RIGHT — FRUIT CATALOGUE */}
-    <div className="min-h-0 lg:h-full lg:overflow-y-auto lg:pr-2">
-
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-[#71864d]">
-          Festive fruit catalogue
-        </p>
-
-        <p className="text-[10px] text-[#17351d]/45">
-          {totals.remainingSlots} of {totals.capacity} slots open
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-
-        {hamperFruits.map((fruit) => (
-          <HamperFruitCard
-            key={fruit.id}
-            fruit={fruit}
-            units={selection[fruit.id] ?? 0}
-            canAddOne={canAdd(
-              basketId,
-              selection,
-              fruit.id,
-              1
-            )}
-            onAdd={addFruit}
-            onRemove={removeFruit}
-          />
-        ))}
-
-      </div>
-    </div>
-
-  </div>
+    {/* MOBILE CART — OUTSIDE THE ANIMATED/GRID CONTAINER */}
+    <HamperMobileCart
+      totals={totals}
+      onAdd={addFruit}
+      onRemove={removeFruit}
+      onContinue={() => setStep(3)}
+      disabled={totals.isEmpty}
+    />
+  </>
 )}
 
+
           {/* STEP 3 — REVIEW & CHECKOUT */}
-          {step === 3 && (
-            <div className="hamper-step-enter mt-8">
+         {step === 3 && (
+  <div className="relative mt-6 min-h-[calc(100vh-150px)]">
               <HamperReview
                 totals={totals}
                 onEditBasket={() => setStep(1)}
