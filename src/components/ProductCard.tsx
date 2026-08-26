@@ -3,6 +3,7 @@ import type { Product, ProductVariant } from '../data/products'
 import RollingNumber from './RollingNumber'
 
 const FRUIT_SHOP_IMAGE = '/fruit-shop-placeholder.png'
+const ROYAL_ITALIC_FONT = "'Cormorant Garamond', Georgia, serif"
 
 export default function ProductCard({
   product,
@@ -289,59 +290,16 @@ export default function ProductCard({
         </div>
 
         {/* ===================================================
-            RATING
-            =================================================== */}
-
-        {product.rating && (
-          <div
-            className="
-              absolute
-              right-2.5
-              top-2.5
-              z-10
-              flex
-              items-center
-              gap-1
-              rounded-full
-              bg-white/92
-              px-2
-              py-1.5
-              text-[8px]
-              font-semibold
-              text-[#17351d]
-              shadow-[0_3px_10px_rgba(8,21,11,0.10)]
-              backdrop-blur-md
-              sm:right-3
-              sm:top-3
-              sm:px-2.5
-              sm:text-[9px]
-            "
-          >
-            <span>★</span>
-
-            <span>
-              {product.rating.toFixed(1)}
-            </span>
-
-            {product.reviewCount && (
-              <span className="font-normal text-[#17351d]/35">
-                ({product.reviewCount})
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* ===================================================
             ADD / QUANTITY
             =================================================== */}
 
        <div
   className="
     absolute
-    bottom-9
+    bottom-5
     right-2.5
     z-20
-    sm:bottom-10
+    sm:bottom-5
     sm:right-3
   "
           onClick={(event) =>
@@ -571,11 +529,12 @@ export default function ProductCard({
     className="
       w-full
       overflow-hidden
-      font-playfair
+      font-serif
+      font-normal
       text-[15px]
       italic
       leading-[1.3]
-      tracking-[-0.01em]
+      tracking-[-0.015em]
       text-[#17351d]
       sm:min-h-[46px]
       sm:text-[18px]
@@ -585,6 +544,7 @@ export default function ProductCard({
       display: '-webkit-box',
       WebkitBoxOrient: 'vertical',
       WebkitLineClamp: 2,
+      fontFamily: ROYAL_ITALIC_FONT,
     }}
   >
     {product.name}
@@ -770,15 +730,17 @@ export default function ProductCard({
     <span
       className="
         whitespace-nowrap
-        font-playfair
+        font-serif
         text-[22px]
-        font-semibold
+        font-normal
         italic
-        leading-none
+        leading-[1.08]
+        pb-0.5
         tabular-nums
         text-[#17351d]
         sm:text-[26px]
       "
+      style={{ fontFamily: ROYAL_ITALIC_FONT }}
     >
       <RollingNumber
         value={selectedVariant.price}

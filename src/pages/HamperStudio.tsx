@@ -244,64 +244,97 @@ const addFruit = (fruitId: string) => {
       )}
 
       {/* ================= CURATED ================= */}
-      {mode === 'curated' && (
-        <section className="hamper-step-enter mx-auto max-w-6xl px-5 py-10 md:px-8 md:py-14">
-          <ModeHeading
-            eyebrow="Premium pre-made hampers"
-            title="Chosen for you"
-            blurb="Compositions the house has already balanced. Add one as-is, or start from scratch in Build Your Own."
-            onSwitch={() => setMode('build')}
-            switchLabel="Build your own"
-          />
+{mode === 'curated' && (
+  <section className="hamper-step-enter mx-auto w-full max-w-[1500px] px-5 py-10 md:px-8 md:py-14">
+    <ModeHeading
+      eyebrow="Premium pre-made hampers"
+      title="Chosen for you"
+      blurb="Compositions the house has already balanced. Add one as-is, or start from scratch in Build Your Own."
+      onSwitch={() => setMode('build')}
+      switchLabel="Build your own"
+    />
 
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {curatedHampers
-              .filter((hamper) => hamper.available)
-              .map((hamper) => {
-                const basket = getHamperBasket(hamper.basketId)
-                const curatedTotals = computeTotals(
-                  hamper.basketId,
-                  curatedSelection(hamper)
-                )
-                const compareAt =
-                  curatedTotals.grandTotal > hamper.price
-                    ? curatedTotals.grandTotal
-                    : undefined
+    <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      {curatedHampers
+        .filter((hamper) => hamper.available)
+        .map((hamper) => {
+          const basket = getHamperBasket(hamper.basketId)
+          const curatedTotals = computeTotals(
+            hamper.basketId,
+            curatedSelection(hamper)
+          )
+          const compareAt =
+            curatedTotals.grandTotal > hamper.price
+              ? curatedTotals.grandTotal
+              : undefined
 
-                return (
-                  <CuratedHamperCard
-                    key={hamper.id}
-                    hamper={hamper}
-                    basket={basket}
-                    itemCount={curatedTotals.unitCount}
-                    compareAtPrice={compareAt}
-                    onAdd={checkoutCurated}
-                  />
-                )
-              })}
-          </div>
-        </section>
-      )}
+          return (
+            <CuratedHamperCard
+              key={hamper.id}
+              hamper={hamper}
+              basket={basket}
+              itemCount={curatedTotals.unitCount}
+              compareAtPrice={compareAt}
+              onAdd={checkoutCurated}
+            />
+          )
+        })}
+    </div>
+  </section>
+)}
 
       {/* ================= BUILD ================= */}
       {mode === 'build' && (
      <section className="mx-auto w-full max-w-[1500px] px-6 py-4 lg:px-8">
 
-          <StepIndicator step={step} hasBasket={Boolean(basketId)} />
+         <div className="flex items-center justify-between gap-4">
+  {/* LEFT — CHECKOUT JOURNEY */}
+  <StepIndicator
+    step={step}
+    hasBasket={Boolean(basketId)}
+  />
 
-          {/* STEP 1 — SELECT BASKET */}
-          {step === 1 && (
-            <div className="hamper-step-enter mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {baskets.map((basket) => (
-                <HamperBasketCard
-                  key={basket.id}
-                  basket={basket}
-                  isSelected={basket.id === basketId}
-                  onSelect={selectBasket}
-                />
-              ))}
-            </div>
-          )}
+  {/* RIGHT — QUOTE */}
+  <div className="hidden min-w-0 flex-1 justify-end lg:flex">
+    <HamperQuoteRotator
+      tone="light"
+      align="center"
+    />
+  </div>
+</div>
+
+{/* STEP 1 — SELECT BASKET */}
+{step === 1 && (
+  <div
+    className="
+      hamper-step-enter
+      mx-auto
+      mt-4
+      w-full
+      max-w-[1400px]
+    "
+  >
+    <div
+      className="
+        grid
+        grid-cols-1
+        gap-3
+        sm:grid-cols-2
+        lg:grid-cols-4
+        lg:gap-4
+      "
+    >
+      {baskets.map((basket) => (
+        <HamperBasketCard
+          key={basket.id}
+          basket={basket}
+          isSelected={basket.id === basketId}
+          onSelect={selectBasket}
+        />
+      ))}
+    </div>
+  </div>
+)}
 
 {/* STEP 2 — SELECT FRUITS */}
 {step === 2 && basketId && (
@@ -318,13 +351,6 @@ const addFruit = (fruitId: string) => {
               totals={totals}
               onAdd={addFruit}
               onRemove={removeFruit}
-            />
-          </div>
-
-          <div className="mt-2 shrink-0 border-t border-[#17351d]/10 pt-2">
-            <HamperQuoteRotator
-              tone="light"
-              align="center"
             />
           </div>
 
@@ -367,7 +393,7 @@ const addFruit = (fruitId: string) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
           {hamperFruits.map((fruit) => (
             <HamperFruitCard
               key={fruit.id}
@@ -476,7 +502,8 @@ function LandingView({
   })
 
   return (
-    <section className="hamper-step-enter relative overflow-hidden bg-[#0b1b0e] text-white">
+    <section className="hamper-step-enter relative overflow-y-auto
+md:overflow-hidden bg-[#0b1b0e] text-white">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-5 py-14 md:px-8 lg:grid-cols-2 lg:py-20">
         {/* COPY */}
         <div className="hamper-rise">

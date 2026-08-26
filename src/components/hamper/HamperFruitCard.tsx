@@ -1,14 +1,9 @@
 /**
- * HAMPER STUDIO — FRUIT SELECTION CARD
+ * HAMPER STUDIO — FRUIT CARD
  *
- * One festive-catalogue fruit. Mirrors the shop's ProductCard visual language
- * (rounded card, off-white fill, restrained shadow) without reusing it, since
- * the interaction is different: add/remove UNITS against a slot budget rather
- * than open a product popup.
- *
- * The card cannot add a unit that will not fit — `canAdd` is passed down from
- * the studio, which owns the slot engine. When full, the add control is
- * disabled and labelled, never silently ignored.
+ * Compact quick-commerce style fruit card.
+ * Mobile: 2 × 2 grid
+ * Desktop: adapts naturally to the catalogue grid.
  */
 
 import RollingNumber from '../RollingNumber'
@@ -34,66 +29,188 @@ export default function HamperFruitCard({
 
   return (
     <div
-      className={`group relative flex h-full flex-col overflow-hidden rounded-[18px] border bg-white/70 p-4 shadow-[0_6px_20px_rgba(8,21,11,0.05)] backdrop-blur-sm transition duration-300 sm:rounded-[22px] ${
-        inHamper
-          ? 'border-[#17351d]/40 ring-1 ring-[#17351d]/15'
-          : 'border-[#17351d]/10'
-      }`}
+      className={`
+        group
+        relative
+        flex
+        h-full
+        min-h-[250px]
+        flex-col
+        overflow-hidden
+        rounded-[15px]
+        border
+        bg-white/80
+        text-left
+        shadow-[0_4px_14px_rgba(8,21,11,0.045)]
+        transition-all
+        duration-300
+
+        sm:min-h-[280px]
+        sm:rounded-[18px]
+
+        ${
+          inHamper
+            ? 'border-[#17351d]/35 ring-1 ring-[#17351d]/10'
+            : 'border-[#17351d]/10'
+        }
+      `}
     >
-      {/* SLOT COST CHIP */}
-      <div className="mb-3 flex items-center justify-between">
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white shadow-inner"
-          style={{
-            background: `radial-gradient(circle at 32% 28%, ${
-              fruit.highlight ?? fruit.color
-            } 0%, ${fruit.color} 62%, rgba(0,0,0,0.35) 130%)`,
-          }}
-          aria-hidden="true"
+      {/* =========================================================
+          FRUIT IMAGE
+          FLUSH WITH CARD EDGES
+          ========================================================= */}
+      <div
+        className="
+          relative
+          h-[140px]
+          w-full
+          shrink-0
+          overflow-hidden
+          bg-[#f2efe5]
+
+          sm:h-[165px]
+        "
+      >
+        {fruit.image ? (
+          <img
+            src={fruit.image}
+            alt={fruit.name}
+            loading="lazy"
+            className="
+              block
+              h-full
+              w-full
+              object-contain
+              p-0
+              transition-transform
+              duration-500
+              ease-out
+              group-hover:scale-[1.035]
+            "
+          />
+        ) : (
+          <div
+            className="h-full w-full"
+            style={{
+              background: `radial-gradient(
+                circle at 32% 28%,
+                ${fruit.highlight ?? fruit.color} 0%,
+                ${fruit.color} 62%,
+                rgba(0,0,0,0.35) 130%
+              )`,
+            }}
+          />
+        )}
+
+        {/* Very subtle bottom fade */}
+        <div
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            bottom-0
+            h-8
+            bg-gradient-to-t
+            from-black/5
+            to-transparent
+          "
         />
 
-        <span className="rounded-full bg-[#17351d]/6 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.16em] text-[#17351d]/55">
-          {fruit.slotsPerUnit === 1
-            ? '1 slot'
-            : `${fruit.slotsPerUnit} slots`}
-        </span>
-      </div>
+        {/* =====================================================
+            ADD BUTTON
+            ===================================================== */}
+        {!inHamper ? (
+          <button
+            type="button"
+            onClick={() => onAdd(fruit.id)}
+            disabled={addDisabled}
+            className={`
+              absolute
+              bottom-2
+              right-2
+              z-10
+              flex
+              h-9
+              min-w-[50px]
+              items-center
+              justify-center
+              rounded-[10px]
+              border
+              bg-white
+              px-3
+              text-[10px]
+              font-bold
+              uppercase
+              tracking-[0.08em]
+              shadow-[0_3px_10px_rgba(8,21,11,0.15)]
+              transition-all
+              duration-200
 
-      {/* NAME + ORIGIN */}
-      <h4 className="font-playfair text-[19px] italic leading-tight text-[#17351d]">
-        {fruit.name}
-      </h4>
-
-      <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.16em] text-[#17351d]/40">
-        {fruit.unit} · {fruit.origin}
-      </p>
-
-      {fruit.note && (
-        <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#17351d]/50">
-          {fruit.note}
-        </p>
-      )}
-
-      {/* PRICE + CONTROL */}
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold tabular-nums text-[#17351d]">
-          <RollingNumber value={fruit.pricePerUnit} prefix="₹" />
-        </span>
-
-        {inHamper ? (
-          <div className="flex items-center rounded-full border border-[#17351d]/12 bg-white/80">
+              ${
+                addDisabled
+                  ? 'cursor-not-allowed border-[#17351d]/10 text-[#17351d]/25'
+                  : 'border-[#17351d]/15 text-[#17351d] hover:bg-[#17351d] hover:text-white active:scale-95'
+              }
+            `}
+          >
+            {addDisabled ? 'Full' : 'ADD'}
+          </button>
+        ) : (
+          /* =====================================================
+             QUANTITY CONTROL
+             ===================================================== */
+          <div
+            className="
+              absolute
+              bottom-2
+              right-2
+              z-10
+              flex
+              h-9
+              items-center
+              overflow-hidden
+              rounded-[10px]
+              border
+              border-[#17351d]/15
+              bg-white
+              shadow-[0_3px_10px_rgba(8,21,11,0.15)]
+            "
+          >
             <button
               type="button"
               onClick={() => onRemove(fruit.id)}
               aria-label={`Remove one ${fruit.name}`}
-              className="flex h-8 w-8 items-center justify-center text-sm transition-all duration-200 hover:bg-[#17351d]/5 active:scale-75"
+              className="
+                flex
+                h-9
+                w-8
+                items-center
+                justify-center
+                text-[16px]
+                font-medium
+                text-[#17351d]/65
+                transition
+                hover:bg-[#17351d]/5
+                active:scale-90
+              "
             >
               −
             </button>
 
             <span
-              key={units}
-              className="w-6 text-center text-xs font-semibold tabular-nums"
+              className="
+                flex
+                h-9
+                min-w-[25px]
+                items-center
+                justify-center
+                border-x
+                border-[#17351d]/8
+                text-[11px]
+                font-bold
+                tabular-nums
+                text-[#17351d]
+              "
             >
               {units}
             </span>
@@ -103,29 +220,136 @@ export default function HamperFruitCard({
               onClick={() => onAdd(fruit.id)}
               disabled={addDisabled}
               aria-label={`Add one ${fruit.name}`}
-              className={`flex h-8 w-8 items-center justify-center text-sm transition-all duration-200 ${
-                addDisabled
-                  ? 'cursor-not-allowed text-[#17351d]/25'
-                  : 'hover:bg-[#17351d]/5 active:scale-90'
-              }`}
+              className={`
+                flex
+                h-9
+                w-8
+                items-center
+                justify-center
+                text-[16px]
+                font-medium
+                transition
+                active:scale-90
+
+                ${
+                  addDisabled
+                    ? 'cursor-not-allowed text-[#17351d]/20'
+                    : 'text-[#17351d]/65 hover:bg-[#17351d]/5'
+                }
+              `}
             >
               +
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onAdd(fruit.id)}
-            disabled={addDisabled}
-            className={`rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition-all duration-300 ${
-              addDisabled
-                ? 'cursor-not-allowed bg-[#17351d]/8 text-[#17351d]/30'
-                : 'bg-[#17351d] text-white hover:bg-[#244b2b] active:scale-95'
-            }`}
-          >
-            {addDisabled ? 'No room' : 'Add'}
-          </button>
         )}
+      </div>
+
+      {/* =========================================================
+          FRUIT INFORMATION
+          ========================================================= */}
+      <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3 sm:pt-2.5">
+        {/* NAME */}
+        <h4
+          className="
+            line-clamp-2
+            font-playfair
+            text-[15px]
+            italic
+            leading-[1.08]
+            text-[#17351d]
+
+            sm:text-[18px]
+          "
+        >
+          {fruit.name}
+        </h4>
+
+        {/* UNIT / ORIGIN */}
+        <p
+          className="
+            mt-1
+            truncate
+            text-[7px]
+            font-semibold
+            uppercase
+            tracking-[0.1em]
+            text-[#17351d]/45
+
+            sm:text-[9px]
+          "
+        >
+          {fruit.unit} · {fruit.origin}
+        </p>
+
+        {/* NOTE */}
+        {fruit.note && (
+          <p
+            className="
+              mt-1.5
+              min-h-[30px]
+              line-clamp-2
+              text-[8px]
+              leading-[13px]
+              text-[#17351d]/50
+
+              sm:min-h-[36px]
+              sm:text-[10px]
+              sm:leading-4
+            "
+          >
+            {fruit.note}
+          </p>
+        )}
+
+        {/* =====================================================
+            PRICE — LOCKED TO BOTTOM
+            ===================================================== */}
+        <div
+          className="
+            mt-auto
+            flex
+            min-h-[30px]
+            items-center
+            justify-between
+            gap-2
+            border-t
+            border-[#17351d]/8
+            pt-2
+          "
+        >
+          <span
+            className="
+              font-playfair
+              text-[18px]
+              font-medium
+              italic
+              leading-none
+              tabular-nums
+              text-[#17351d]
+
+              sm:text-[21px]
+            "
+          >
+            <RollingNumber
+              value={fruit.pricePerUnit}
+              prefix="₹"
+            />
+          </span>
+
+          <span
+            className="
+              truncate
+              text-[7px]
+              font-semibold
+              uppercase
+              tracking-[0.08em]
+              text-[#17351d]/35
+            "
+          >
+            {fruit.slotsPerUnit}{' '}
+            {fruit.slotsPerUnit === 1 ? 'slot' : 'slots'}
+          </span>
+        </div>
       </div>
     </div>
   )

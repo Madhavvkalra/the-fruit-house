@@ -8,45 +8,67 @@
  * CAPACITY RULE
  * -------------
  * `capacity` is measured in SLOTS and MUST ALWAYS BE AN EVEN NUMBER.
- * Even capacities keep every basket visually and physically balanced
- * (pairs, rows and halves all divide cleanly), so 20 / 30 / 40 / 50 / 60 / 80
- * are valid and 21 / 25 / 35 / 45 are not.
  *
- * `price` is the price of the basket ITSELF. Fruit is priced separately in
- * `hamperFruits.ts` and added on top.
+ * `price` is the price of the basket ITSELF.
+ * Fruit is priced separately in `hamperFruits.ts` and added on top.
  */
 
 export type HamperBasket = {
   id: string
   name: string
 
-  /** Total slots this basket can hold. MUST be an even number. */
+  /**
+   * Total slots this basket can hold.
+   * MUST be an even number.
+   */
   capacity: number
 
-  /** Price of the empty basket, in rupees. Fruit is charged separately. */
+  /**
+   * Price of the empty basket, in rupees.
+   * Fruit is charged separately.
+   */
   price: number
 
   description?: string
   festiveBadge?: string
 
-  /** Set to false to take a basket out of circulation without deleting it. */
+  /**
+   * Set to false to take a basket out of circulation
+   * without deleting it.
+   */
   available: boolean
 
   /**
-   * Visual configuration for the CSS 3D basket. Kept in the data layer so a
-   * new basket can be added without touching any component.
+   * Optional real basket image used by the basket catalogue.
+   *
+   * These files should live inside:
+   *
+   * public/hamper-baskets/
+   */
+  image?: string
+
+  /**
+   * Visual configuration for the CSS 3D basket.
+   *
+   * Kept in the data layer so the existing 3D basket
+   * renderer continues to work elsewhere.
    */
   visual: {
     /** Weave colour, lit side. */
     weave: string
+
     /** Weave colour, shadowed side. */
     weaveDeep: string
+
     /** Rim / handle colour. */
     rim: string
-    /** Rendered basket width in px at the reference size. */
+
+    /** Rendered basket width in px at reference size. */
     width: number
-    /** Rendered basket height in px at the reference size. */
+
+    /** Rendered basket height in px at reference size. */
     height: number
+
     /** Number of vertical staves used to fake the cylinder. */
     staves: number
   }
@@ -58,9 +80,14 @@ export const hamperBaskets: HamperBasket[] = [
     name: 'Petite Crate',
     capacity: 20,
     price: 450,
+
     description:
       'A small, considered gesture. Enough room for five careful choices.',
+
     available: true,
+
+    image: '/hamper-baskets/petite-crate.png',
+
     visual: {
       weave: '#c9a86a',
       weaveDeep: '#8a6d3c',
@@ -70,15 +97,21 @@ export const hamperBaskets: HamperBasket[] = [
       staves: 18,
     },
   },
+
   {
     id: 'classic-hamper',
     name: 'Classic Hamper',
     capacity: 30,
     price: 650,
+
     description:
       'Our most-gifted basket. Generous without being ceremonial.',
+
     festiveBadge: 'Most gifted',
     available: true,
+
+    image: '/hamper-baskets/classic-hamper.png',
+
     visual: {
       weave: '#c8a163',
       weaveDeep: '#846434',
@@ -88,14 +121,20 @@ export const hamperBaskets: HamperBasket[] = [
       staves: 20,
     },
   },
+
   {
     id: 'signature-basket',
     name: 'Signature Basket',
     capacity: 40,
     price: 900,
+
     description:
       'The house standard. Deep enough to layer stone fruit over vine fruit.',
+
     available: true,
+
+    image: '/hamper-baskets/signature-basket.png',
+
     visual: {
       weave: '#bf9557',
       weaveDeep: '#7a5a2d',
@@ -105,14 +144,20 @@ export const hamperBaskets: HamperBasket[] = [
       staves: 22,
     },
   },
+
   {
     id: 'grand-hamper',
     name: 'Grand Hamper',
     capacity: 50,
     price: 1250,
+
     description:
       'For a household rather than a person. Arrives with a linen liner.',
+
     available: true,
+
+    image: '/hamper-baskets/grand-hamper.png',
+
     visual: {
       weave: '#b98d4d',
       weaveDeep: '#6f5127',
@@ -122,15 +167,21 @@ export const hamperBaskets: HamperBasket[] = [
       staves: 24,
     },
   },
+
   {
     id: 'celebration-trunk',
     name: 'Celebration Trunk',
     capacity: 60,
     price: 1650,
+
     description:
       'A festive centrepiece. Built to be opened in front of everyone.',
+
     festiveBadge: 'Festive',
     available: true,
+
+    image: '/hamper-baskets/celebration-trunk.png',
+
     visual: {
       weave: '#ad7f42',
       weaveDeep: '#644720',
@@ -140,15 +191,21 @@ export const hamperBaskets: HamperBasket[] = [
       staves: 26,
     },
   },
+
   {
     id: 'heritage-chest',
     name: 'The Heritage Chest',
     capacity: 80,
     price: 2400,
+
     description:
       'Our largest. Corporate gifting, weddings, and the occasional apology.',
+
     festiveBadge: 'Limited',
     available: true,
+
+    image: '/hamper-baskets/heritage-chest.png',
+
     visual: {
       weave: '#9d7139',
       weaveDeep: '#573d1b',
