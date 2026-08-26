@@ -284,10 +284,8 @@ const [basketOpen, setBasketOpen] = useState(false)
 useEffect(() => {
   if (basketOpen) {
     document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
   } else {
     document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
   }
 
   return () => {
@@ -299,75 +297,45 @@ useEffect(() => {
 const [checkoutOpen, setCheckoutOpen] = useState(false)
 
 
-const [isProductChanging, setIsProductChanging] = useState(false)
+const [isProductChanging, setIsProductChanging] =
+  useState(false)
 
 const [selectedProduct, setSelectedProduct] =
   useState<Product | null>(null)
 
-  const [isProductPopupClosing, setIsProductPopupClosing] =
-  useState(false)
-
-useEffect(() => {
-  if (selectedProduct) {
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
-  }
-
-  return () => {
-    document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
-  }
-}, [selectedProduct])
-
 const closeProductPopup = () => {
-  if (isProductPopupClosing) return
-
-  setIsProductPopupClosing(true)
-
-  window.setTimeout(() => {
-    setSelectedProduct(null)
-    setSelectedPopupVariant(null)
-    setSelectedProductImageIndex(0)
-    setIsProductPopupClosing(false)
-
-    // Drop back to "/" only once the exit animation has finished, so the URL
-    // change cannot clear selectedProduct mid-animation.
+  if (routeProductId) {
     navigate('/', { replace: true })
-  }, 560)
+  }
 }
 
-// Opening a product is a real navigation, so the URL is shareable and the
-// browser back button closes the popup.
 const openProduct = (product: Product) => {
   navigate(`/fruit/${product.id}`)
 }
 
-// "You may also like" swaps the product inside the already-open popup. Keep
-// the URL pointing at whatever is on screen, using replace so that back still
-// means "close the popup" instead of walking back through every product viewed.
 const selectPopupProduct = (product: Product | null) => {
   setSelectedProduct(product)
 
   if (product) {
+    setSelectedProductImageIndex(0)
+    setSelectedPopupVariant(product.variants[0])
     navigate(`/fruit/${product.id}`, { replace: true })
   }
 }
 
-// The URL is the source of truth for which product the popup shows.
 useEffect(() => {
-  if (isProductPopupClosing) return
-
+  // No product route means the popup must be closed.
   if (!routeProductId) {
-    // Browser back from /fruit/:id — close via the normal path so the exit
-    // animation still plays.
-    if (selectedProduct) closeProductPopup()
+    setSelectedProduct(null)
+    setSelectedPopupVariant(null)
+    setSelectedProductImageIndex(0)
     return
   }
 
-  if (selectedProduct?.id === routeProductId) return
+  // If the requested product is already open, do nothing.
+  if (selectedProduct?.id === routeProductId) {
+    return
+  }
 
   const product = products.find(
     (item) => item.id === routeProductId
@@ -380,24 +348,26 @@ useEffect(() => {
 
   setSelectedProduct(product)
   setSelectedProductImageIndex(0)
-  setSelectedPopupVariant(product.variants[0])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [routeProductId, selectedProduct, isProductPopupClosing])
+  setSelectedPopupVariant(product.variants[0] ?? null)
+}, [
+  routeProductId,
+  navigate,
+])
 
 const addToBasket = (
   product: Product,
   variant: ProductVariant
 ) => {
   const wasEmpty = basket.length === 0
-const itemKey = `${product.id}-${variant.label}`
+  const itemKey = `${product.id}-${variant.label}`
 
-setNewBasketItemKey(itemKey)
+  setNewBasketItemKey(itemKey)
 
-const isNewProduct = !basket.some(
-  (item) =>
-    item.product.id === product.id &&
-    item.variant.label === variant.label
-)
+  const isNewProduct = !basket.some(
+    (item) =>
+      item.product.id === product.id &&
+      item.variant.label === variant.label
+  )
 
   setBasket((current) => {
     const existing = current.find(
@@ -427,26 +397,25 @@ const isNewProduct = !basket.some(
     ]
   })
 
-if (isNewProduct) {
-  setIsBasketCartReacting(true)
+  if (isNewProduct) {
+    setIsBasketCartReacting(true)
+
+    window.setTimeout(() => {
+      setIsBasketCartReacting(false)
+    }, 500)
+  }
 
   window.setTimeout(() => {
-    setIsBasketCartReacting(false)
-  }, 500)
-}
-
-window.setTimeout(() => {
     setNewBasketItemKey(null)
   }, 500)
 
   if (wasEmpty) {
-  setIsBasketPillEntering(true)
+    setIsBasketPillEntering(true)
 
-  window.setTimeout(() => {
-    setIsBasketPillEntering(false)
-  }, 500)
-}
-
+    window.setTimeout(() => {
+      setIsBasketPillEntering(false)
+    }, 500)
+  }
 }
 
 const updateBasketQuantity = (
@@ -935,9 +904,8 @@ basket={basket}
 ========================================================= */}
 
 {selectedProduct && (
-
   <div
-    className={`
+    className="
       fixed
       inset-0
       z-[500]
@@ -947,17 +915,15 @@ basket={basket}
       bg-[#08150b]/35
       backdrop-blur-[2px]
       sm:items-center
-
-      ${
-        isProductPopupClosing
-          ? 'animate-[productPopupOverlayExit_.55s_ease_forwards]'
-          : 'animate-[productPopupOverlayEnter_.75s_ease_forwards]'
+    "
+    onClick={(event) => {
+      if (event.target === event.currentTarget) {
+        closeProductPopup()
       }
-    `}
->
+    }}
+  >
     <ProductPopup
       selectedProduct={selectedProduct}
-      isProductPopupClosing={isProductPopupClosing}
       closeProductPopup={closeProductPopup}
       selectedPopupVariant={selectedPopupVariant}
       basket={basket}
@@ -1010,50 +976,29 @@ basket={basket}
     )}
 
     <style>{`
-
-    @keyframes productPopupOverlayEnter {
-  0% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-@keyframes productPopupOverlayExit {
-  0% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
   
-@keyframes productPopupEnter {
+  
+@keyframes productPopupFadeIn {
   0% {
     opacity: 0;
-    transform: translateY(28px) scale(0.96);
   }
 
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes productPopupExit {
+@keyframes productPopupFadeOut {
   0% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(24px) scale(0.96);
   }
 }
+
+
 
   @keyframes loaderProgress {
     0% {
