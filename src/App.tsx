@@ -25,6 +25,8 @@ import type { HamperCartEntry } from './lib/hamperCart'
 
 import './styles/hamper.css'
 
+
+
 const WHOLE_IMAGE_MOBILE = '/fruit-whole-mobile.png'
 const CUT_IMAGE_MOBILE = '/fruit-cut-mobile.png'
 const WHOLE_IMAGE_DESKTOP = '/fruit-whole-desktop.png'
@@ -102,10 +104,13 @@ const isHamperStudio = hamperMode !== null
 
 const [isLoaderVisible, setIsLoaderVisible] = useState(true)
 
-  const heroRef = useRef<HTMLElement | null>(null)
-  const imageRef = useRef<HTMLImageElement | null>(null)
-  
-  const rawPointer = useRef({ x: -500, y: -500 })
+const heroRef = useRef<HTMLElement | null>(null)
+const imageRef = useRef<HTMLImageElement | null>(null)
+
+const [hamperMobileCartActive, setHamperMobileCartActive] = useState(false)
+const [hamperMobilePanelVisible, setHamperMobilePanelVisible] = useState(false)
+
+const rawPointer = useRef({ x: -500, y: -500 })
   const smoothPointer = useRef({ x: -500, y: -500 })
   const animationRef = useRef<number | null>(null)
   const [cursor, setCursor] = useState({
@@ -859,10 +864,12 @@ return (
 
     {isHamperStudio ? (
       <HamperStudio
-        initialMode={hamperMode ?? 'landing'}
-        onCheckoutHamper={addHamperToCart}
-        onExit={() => navigate('/')}
-      />
+  setHamperMobileCartActive={setHamperMobileCartActive}
+  setHamperMobilePanelVisible={setHamperMobilePanelVisible}
+  initialMode={hamperMode ?? 'landing'}
+  onCheckoutHamper={addHamperToCart}
+  onExit={() => navigate('/')}
+/>
     ) : (
       <Home
         heroRef={heroRef}
@@ -948,20 +955,26 @@ basket={basket}
         FLOATING BASKET
     ========================================================= */}
 
-    <Basket
-      basket={basket}
-      basketCount={basketCount}
-      basketTotal={basketTotal}
-      basketOpen={basketOpen}
-      isBasketClosing={isBasketClosing}
-      isBasketPillEntering={isBasketPillEntering}
-      isBasketCartReacting={isBasketCartReacting}
-      removingBasketItem={removingBasketItem}
-      newBasketItemKey={newBasketItemKey}
-      setBasketOpen={setBasketOpen}
-      setCheckoutOpen={setCheckoutOpen}
-      updateBasketQuantity={updateBasketQuantity}
-    />
+    {!hamperMobileCartActive && (
+  <Basket
+  basket={basket}
+  basketCount={basketCount}
+  basketTotal={basketTotal}
+  basketOpen={basketOpen}
+  isBasketClosing={isBasketClosing}
+  isBasketPillEntering={isBasketPillEntering}
+  isBasketCartReacting={isBasketCartReacting}
+
+  hamperMobileCartActive={hamperMobileCartActive}
+  hamperMobilePanelVisible={hamperMobilePanelVisible}
+
+  removingBasketItem={removingBasketItem}
+  newBasketItemKey={newBasketItemKey}
+  setBasketOpen={setBasketOpen}
+  setCheckoutOpen={setCheckoutOpen}
+  updateBasketQuantity={updateBasketQuantity}
+/>
+)}
 
     {/* =========================================================
         CHECKOUT

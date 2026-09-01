@@ -949,46 +949,64 @@ body: JSON.stringify({
       clearTimeout(timeout)
     }
 
-    console.log(
-      'Fruit Sense: OpenRouter responded with status',
-      response.status,
-    )
+  console.log(
+  'Fruit Sense: OpenRouter responded with status',
+  response.status,
+)
 
-    const data =
-      await response.json()
+const data = await response.json()
 
-    if (!response.ok) {
-      console.error(
-        'OpenRouter error:',
-        data,
-      )
+console.log(
+  'Fruit Sense FULL RESPONSE:',
+  JSON.stringify(data, null, 2),
+)
 
-      return res.status(502).json({
-        success: false,
-        error:
-          data?.error?.message ||
-          'Fruit Sense could not generate recommendations right now.',
-      })
-    }
+if (!response.ok) {
+  console.error(
+    'OpenRouter error:',
+    data,
+  )
 
-    const content =
-      data?.choices?.[0]?.message?.content
+  return res.status(502).json({
+    success: false,
+    error:
+      data?.error?.message ||
+      'Fruit Sense could not generate recommendations right now.',
+  })
+}
 
-    if (
-      typeof content !== 'string' ||
-      !content.trim()
-    ) {
-      console.error(
-        'Empty OpenRouter response:',
-        data,
-      )
+const messageData =
+  data?.choices?.[0]?.message
 
-      return res.status(502).json({
-        success: false,
-        error:
-          'Fruit Sense returned an empty response.',
-      })
-    }
+const content =
+  typeof messageData?.content === 'string' &&
+  messageData.content.trim()
+    ? messageData.content
+    : typeof messageData?.reasoning === 'string' &&
+        messageData.reasoning.trim()
+      ? messageData.reasoning
+      : null
+
+console.log(
+  'Fruit Sense extracted response:',
+  content,
+)
+
+if (
+  typeof content !== 'string' ||
+  !content.trim()
+) {
+  console.error(
+    'Empty OpenRouter response:',
+    data,
+  )
+
+  return res.status(502).json({
+    success: false,
+    error:
+      'Fruit Sense returned an empty response.',
+  })
+}
 
     console.log(
       'Fruit Sense RAW MODEL RESPONSE:',

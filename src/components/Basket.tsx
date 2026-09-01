@@ -17,6 +17,9 @@ type BasketProps = {
   isBasketPillEntering: boolean
   isBasketCartReacting: boolean
 
+  hamperMobileCartActive: boolean
+  hamperMobilePanelVisible: boolean
+
   removingBasketItem: string | null
   newBasketItemKey: string | null
 
@@ -40,6 +43,9 @@ export default function Basket({
   isBasketPillEntering,
   isBasketCartReacting,
 
+ hamperMobileCartActive,
+hamperMobilePanelVisible,
+
   removingBasketItem,
   newBasketItemKey,
 
@@ -50,20 +56,28 @@ export default function Basket({
 }: BasketProps) {
   return (
     <>
-      {(basketCount > 0 || isBasketClosing) && (
-        <div
-          className="
-            fixed
-            bottom-5
-            left-1/2
-            z-[250]
-            -translate-x-1/2
-            sm:bottom-6
-            md:left-auto
-            md:right-6
-            md:translate-x-0
-          "
-        >
+     {!hamperMobileCartActive &&
+  (basketCount > 0 || isBasketClosing) && (
+    <div
+      className={`
+        fixed
+        right-4
+        z-[250]
+
+        transition-[bottom]
+        duration-500
+        ease-[cubic-bezier(.22,1,.36,1)]
+
+        ${
+          hamperMobilePanelVisible
+            ? 'bottom-[118px]'
+            : 'bottom-5'
+        }
+
+        md:right-6
+        md:bottom-6
+      `}
+    >
          {/* =================================================
     CLOSED BASKET PILL
 ================================================= */}

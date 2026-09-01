@@ -1,5 +1,5 @@
 import { Minus, Plus, ShoppingBasket, X, ChevronUp } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import RollingNumber from '../RollingNumber'
 
 import type { HamperTotals } from '../../lib/hamperSlots'
@@ -10,6 +10,7 @@ type HamperMobileCartProps = {
   onRemove: (fruitId: string) => void
   onContinue: () => void
   disabled: boolean
+  onActiveChange?: (active: boolean) => void
 }
 
 export default function HamperMobileCart({
@@ -18,8 +19,13 @@ export default function HamperMobileCart({
   onRemove,
   onContinue,
   disabled,
+  onActiveChange,
 }: HamperMobileCartProps) {
   const [open, setOpen] = useState(false)
+
+useEffect(() => {
+  onActiveChange?.(open)
+}, [open, onActiveChange])
 
   const {
     basket,

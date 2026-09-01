@@ -20,13 +20,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Check, Sparkles } from 'lucide-react'
 
-
-
 import {
   availableHamperBaskets,
   getHamperBasket,
 } from '../data/hamperBaskets'
+
 import { hamperFruits } from '../data/hamperFruits'
+
 import {
   curatedHampers,
   curatedSelection,
@@ -39,15 +39,16 @@ import {
   sanitizeSelection,
   type HamperSelection,
 } from '../lib/hamperSlots'
+
 import {
   buildCuratedHamperCartEntry,
   buildCustomHamperCartEntry,
   type HamperCartEntry,
 } from '../lib/hamperCart'
+
 import {
   clearHamperDraft,
   loadHamperDraft,
-  saveHamperDraft,
 } from '../lib/hamperStorage'
 
 import HamperBasket3D from '../components/hamper/HamperBasket3D'
@@ -60,29 +61,34 @@ import CuratedHamperCard from '../components/hamper/CuratedHamperCard'
 import HamperReview from '../components/hamper/HamperReview'
 
 export type StudioMode = 'landing' | 'curated' | 'build'
+
 type BuildStep = 1 | 2 | 3
 
 type HamperStudioProps = {
-  /** 'curated' | 'build' opens directly into that mode; anything else lands. */
   initialMode?: StudioMode
-  /** Hands the finished hamper to the existing cart + checkout. */
   onCheckoutHamper: (entry: HamperCartEntry) => void
-  /** Back to the home page. */
   onExit: () => void
+  setHamperMobileCartActive: (active: boolean) => void
+  setHamperMobilePanelVisible: (visible: boolean) => void
 }
 
 export default function HamperStudio({
-  initialMode = 'landing',
+  initialMode,
   onCheckoutHamper,
   onExit,
+  setHamperMobileCartActive,
+  setHamperMobilePanelVisible,
 }: HamperStudioProps) {
+
+
+  
   // Seed from any saved draft exactly once.
   const initialDraft = useRef(loadHamperDraft())
 
   const [mode, setMode] = useState<StudioMode>(() => {
     if (initialMode === 'curated') return 'curated'
     if (initialMode === 'build') return 'build'
-    // A saved in-progress build resumes straight into the builder.
+
     return initialDraft.current.basketId ? 'build' : 'landing'
   })
 
@@ -90,9 +96,11 @@ export default function HamperStudio({
     initialDraft.current.basketId ? 2 : 1
   )
 
+
   const [basketId, setBasketId] = useState<string | null>(
     initialDraft.current.basketId
   )
+
   const [selection, setSelection] = useState<HamperSelection>(
     initialDraft.current.selection
   )
@@ -104,15 +112,34 @@ export default function HamperStudio({
   )
  
   const baskets = availableHamperBaskets()
-  const totals = useMemo(
-    () => computeTotals(basketId, selection),
-    [basketId, selection]
-  )
+ const totals = useMemo(
+  () => computeTotals(basketId, selection),
+  [basketId, selection]
+)
 
-  // Persist the build draft on every change; checkout/clear wipe it.
-  useEffect(() => {
-    saveHamperDraft({ basketId, selection })
-  }, [basketId, selection])
+// Controls whether the normal "Your Basket" pill
+// needs to move upward for the Step 2 hamper panel.
+useEffect(() => {
+  setHamperMobilePanelVisible(
+    step === 2 && Boolean(basketId)
+  )
+}, [
+  step,
+  basketId,
+  setHamperMobilePanelVisible,
+])
+
+// Restore the normal basket state when leaving Hamper Studio.
+useEffect(() => {
+  return () => {
+    setHamperMobileCartActive(false)
+    setHamperMobilePanelVisible(false)
+  }
+}, [
+  setHamperMobileCartActive,
+  setHamperMobilePanelVisible,
+])
+
 
 
   // ---- FRUIT ----------------------------------------------------------
@@ -416,13 +443,14 @@ const addFruit = (fruitId: string) => {
     </div>
 
     {/* MOBILE CART — OUTSIDE THE ANIMATED/GRID CONTAINER */}
-    <HamperMobileCart
-      totals={totals}
-      onAdd={addFruit}
-      onRemove={removeFruit}
-      onContinue={() => setStep(3)}
-      disabled={totals.isEmpty}
-    />
+<HamperMobileCart
+  totals={totals}
+  onAdd={addFruit}
+  onRemove={removeFruit}
+  onContinue={() => setStep(3)}
+  disabled={totals.isEmpty}
+  onActiveChange={setHamperMobileCartActive}
+/>
   </>
 )}
 
