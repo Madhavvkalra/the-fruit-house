@@ -103,7 +103,7 @@ hamperMobilePanelVisible,
   className="
     flex
     h-[58px]
-w-[calc(100vw-32px)]
+w-[185px]
 max-w-[245px]
     items-center
     rounded-full
@@ -151,28 +151,30 @@ max-w-[245px]
     🛒
   </span>
 
-  {/* LABEL */}
+ {/* LABEL */}
 
-  <span
-    className="
-      ml-3
-      shrink-0
-      whitespace-nowrap
-      text-[10px]
-      font-semibold
-      uppercase
-      tracking-[0.15em]
-      text-white/55
-    "
-  >
-    Your basket
-  </span>
+<span
+  className="
+    ml-3
+    flex
+    flex-col
+    leading-[1.05]
+    text-[9px]
+    font-semibold
+    uppercase
+    tracking-[0.14em]
+    text-white/55
+  "
+>
+  <span>Your</span>
+  <span className="mt-[2px]">Basket</span>
+</span>
 
   {/* DIVIDER */}
 
   <span
     className="
-      mx-3
+      mx-2
       h-7
       w-px
       shrink-0

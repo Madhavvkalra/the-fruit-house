@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom'
 
 import Checkout from './pages/Checkout'
 
+import FruitSenseButton from './components/FruitSenseButton'
+
 import {
   products,
   type Product,
@@ -951,6 +953,13 @@ basket={basket}
   </div>
 )}
 
+  {/* =========================================================
+    FRUIT SENSE AI
+========================================================= */}
+
+<FruitSenseButton
+  hamperMobilePanelVisible={hamperMobilePanelVisible}
+/>
     {/* =========================================================
         FLOATING BASKET
     ========================================================= */}

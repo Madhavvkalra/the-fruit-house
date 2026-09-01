@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-type FruitProduct = {
+const OPENROUTER_URL =
+  'https://openrouter.ai/api/v1/chat/completions'
+
+const MODEL = 'openrouter/free'
+
+type CatalogueProduct = {
   id: string
   name: string
   origin: string
@@ -20,45 +25,36 @@ type ModelResponse = {
   summary?: unknown
 }
 
-const OPENROUTER_URL =
-  'https://openrouter.ai/api/v1/chat/completions'
+/* =================================================
+   THE FRUIT HOUSE CATALOGUE
+================================================= */
 
-const MODEL =
-  'openrouter/free'
-
-/*
- * SERVER-SIDE FRUIT HOUSE CATALOGUE
- *
- * These IDs must match the products in src/data/products.ts.
- * Fruit Sense is only allowed to recommend products from
- * this catalogue.
- */
-const catalogue: FruitProduct[] = [
+const catalogue: CatalogueProduct[] = [
   {
     id: 'gala-apples',
     name: 'New Zealand Gala Apples',
     origin: 'New Zealand',
     quantity: '4 pcs · ~700–750g',
     qualities: [
+      'sweet',
       'crisp',
-      'naturally sweet',
       'juicy',
       'refreshing',
       'aromatic',
     ],
     intents: [
-      'naturally-sweet',
+      'everyday-snacking',
       'refreshing',
-      'crisp',
-      'snacking',
+      'naturally-sweet',
     ],
     keywords: [
       'apple',
       'gala',
-      'crisp',
       'sweet',
+      'crisp',
       'juicy',
       'refreshing',
+      'snack',
     ],
   },
 
@@ -68,22 +64,21 @@ const catalogue: FruitProduct[] = [
     origin: 'Washington, USA',
     quantity: '4 pcs · ~700–750g',
     qualities: [
-      'crisp',
       'sweet',
-      'juicy',
       'mild',
+      'juicy',
+      'soft',
     ],
     intents: [
       'naturally-sweet',
-      'snacking',
-      'crisp',
+      'everyday-snacking',
     ],
     keywords: [
       'apple',
       'red delicious',
-      'crisp',
       'sweet',
       'juicy',
+      'snack',
     ],
   },
 
@@ -96,24 +91,20 @@ const catalogue: FruitProduct[] = [
       'very sweet',
       'juicy',
       'crisp',
-      'seedless',
-      'refreshing',
       'premium',
+      'seedless',
     ],
     intents: [
+      'indulgent',
       'naturally-sweet',
-      'refreshing',
       'premium-snacking',
-      'seedless',
     ],
     keywords: [
       'grapes',
       'shine muscat',
       'sweet',
-      'very sweet',
-      'seedless',
       'juicy',
-      'refreshing',
+      'seedless',
       'premium',
     ],
   },
@@ -124,25 +115,22 @@ const catalogue: FruitProduct[] = [
     origin: 'Turkey',
     quantity: 'Select your weight',
     qualities: [
+      'sweet',
       'juicy',
-      'sweet-tart',
-      'fresh',
+      'premium',
       'refreshing',
     ],
     intents: [
-      'refreshing',
+      'premium-snacking',
       'naturally-sweet',
-      'light-snacking',
-      'tangy',
+      'refreshing',
     ],
     keywords: [
-      'cherry',
       'cherries',
-      'turkish cherries',
+      'cherry',
       'sweet',
-      'tart',
       'juicy',
-      'refreshing',
+      'premium',
     ],
   },
 
@@ -154,22 +142,20 @@ const catalogue: FruitProduct[] = [
     qualities: [
       'creamy',
       'rich',
-      'smooth',
-      'satisfying',
       'mild',
+      'filling',
     ],
     intents: [
-      'satisfying',
       'filling',
-      'meal',
-      'creamy',
+      'breakfast',
+      'balanced-meal',
     ],
     keywords: [
       'avocado',
       'creamy',
-      'rich',
       'filling',
-      'satisfying',
+      'breakfast',
+      'rich',
     ],
   },
 
@@ -179,24 +165,21 @@ const catalogue: FruitProduct[] = [
     origin: 'Vietnam',
     quantity: '2 pcs',
     qualities: [
-      'mild',
       'refreshing',
-      'juicy',
       'light',
-      'delicate',
+      'juicy',
+      'mild',
     ],
     intents: [
       'refreshing',
       'light-snacking',
-      'exotic',
     ],
     keywords: [
       'dragon fruit',
       'refreshing',
       'light',
       'juicy',
-      'mild',
-      'exotic',
+      'cooling',
     ],
   },
 
@@ -210,22 +193,20 @@ const catalogue: FruitProduct[] = [
       'soft',
       'rich',
       'caramel-like',
-      'indulgent',
-      'premium',
+      'filling',
     ],
     intents: [
       'naturally-sweet',
-      'premium-snacking',
       'indulgent',
-      'sweet',
+      'energy-snacking',
     ],
     keywords: [
       'dates',
       'medjoul',
-      'very sweet',
       'sweet',
       'rich',
-      'premium',
+      'snack',
+      'energy',
     ],
   },
 
@@ -236,21 +217,16 @@ const catalogue: FruitProduct[] = [
     quantity: '4 pcs',
     qualities: [
       'tangy',
-      'bright',
-      'juicy',
       'refreshing',
-      'fresh',
+      'juicy',
     ],
     intents: [
       'refreshing',
-      'tangy',
       'light-snacking',
     ],
     keywords: [
       'kiwi',
-      'chile',
       'tangy',
-      'fresh',
       'refreshing',
       'juicy',
     ],
@@ -262,26 +238,19 @@ const catalogue: FruitProduct[] = [
     origin: 'New Zealand',
     quantity: '4 pcs · ~700–750g',
     qualities: [
-      'crisp',
       'sweet',
+      'crisp',
       'juicy',
-      'aromatic',
-      'refreshing',
     ],
     intents: [
+      'everyday-snacking',
       'naturally-sweet',
-      'refreshing',
-      'crisp',
-      'snacking',
     ],
     keywords: [
       'apple',
       'queen apple',
-      'new zealand',
-      'crisp',
       'sweet',
-      'juicy',
-      'refreshing',
+      'crisp',
     ],
   },
 
@@ -291,24 +260,19 @@ const catalogue: FruitProduct[] = [
     origin: 'USA',
     quantity: '4 pcs · ~700–750g',
     qualities: [
-      'very crisp',
       'tart',
-      'bright',
-      'juicy',
+      'crisp',
       'refreshing',
     ],
     intents: [
       'refreshing',
-      'tangy',
-      'crisp',
-      'tart',
+      'crisp-snacking',
     ],
     keywords: [
       'apple',
       'granny smith',
       'tart',
       'crisp',
-      'tangy',
       'refreshing',
     ],
   },
@@ -319,24 +283,19 @@ const catalogue: FruitProduct[] = [
     origin: 'South Africa',
     quantity: '4 pcs · ~650–700g',
     qualities: [
-      'juicy',
       'sweet',
-      'soft when ripe',
-      'mild',
-      'refreshing',
+      'juicy',
+      'soft',
     ],
     intents: [
+      'everyday-snacking',
       'naturally-sweet',
-      'snacking',
-      'refreshing',
     ],
     keywords: [
       'pear',
       'packham',
       'sweet',
       'juicy',
-      'mild',
-      'refreshing',
     ],
   },
 
@@ -346,23 +305,19 @@ const catalogue: FruitProduct[] = [
     origin: 'South Africa',
     quantity: '4 pcs · ~650–700g',
     qualities: [
-      'juicy',
       'sweet',
-      'mild',
-      'refreshing',
+      'juicy',
+      'delicate',
     ],
     intents: [
+      'everyday-snacking',
       'naturally-sweet',
-      'snacking',
-      'refreshing',
     ],
     keywords: [
       'pear',
       'beauty pear',
       'sweet',
       'juicy',
-      'mild',
-      'refreshing',
     ],
   },
 
@@ -373,23 +328,21 @@ const catalogue: FruitProduct[] = [
     quantity: '4 pcs · ~800–850g',
     qualities: [
       'juicy',
-      'citrusy',
       'refreshing',
-      'bright',
+      'citrusy',
       'sweet-tart',
     ],
     intents: [
       'refreshing',
-      'citrus',
       'juicy',
+      'morning-fruit',
     ],
     keywords: [
       'orange',
-      'egyptian orange',
       'citrus',
       'juicy',
       'refreshing',
-      'bright',
+      'valencia',
     ],
   },
 
@@ -400,23 +353,18 @@ const catalogue: FruitProduct[] = [
     quantity: '4 pcs · ~800–850g',
     qualities: [
       'juicy',
-      'citrusy',
       'refreshing',
-      'bright',
-      'sweet-tart',
+      'citrusy',
     ],
     intents: [
       'refreshing',
-      'citrus',
       'juicy',
     ],
     keywords: [
       'orange',
-      'south african orange',
       'citrus',
       'juicy',
       'refreshing',
-      'bright',
     ],
   },
 
@@ -429,22 +377,19 @@ const catalogue: FruitProduct[] = [
       'very sweet',
       'juicy',
       'citrusy',
-      'refreshing',
+      'premium',
     ],
     intents: [
       'naturally-sweet',
       'refreshing',
-      'citrus',
-      'juicy',
+      'premium-snacking',
     ],
     keywords: [
       'murcott',
-      'honey murcott',
-      'citrus',
+      'mandarin',
       'sweet',
-      'very sweet',
+      'citrus',
       'juicy',
-      'refreshing',
     ],
   },
 
@@ -456,13 +401,11 @@ const catalogue: FruitProduct[] = [
     qualities: [
       'sweet',
       'juicy',
-      'citrusy',
-      'refreshing',
+      'easy-snacking',
     ],
     intents: [
-      'naturally-sweet',
       'refreshing',
-      'citrus',
+      'easy-snacking',
     ],
     keywords: [
       'mandarin',
@@ -470,7 +413,6 @@ const catalogue: FruitProduct[] = [
       'citrus',
       'sweet',
       'juicy',
-      'refreshing',
     ],
   },
 
@@ -483,20 +425,16 @@ const catalogue: FruitProduct[] = [
       'sweet',
       'juicy',
       'citrusy',
-      'refreshing',
     ],
     intents: [
-      'naturally-sweet',
       'refreshing',
-      'citrus',
+      'easy-snacking',
     ],
     keywords: [
       'mandarin',
       'nadorcott',
       'citrus',
       'sweet',
-      'juicy',
-      'refreshing',
     ],
   },
 
@@ -506,23 +444,20 @@ const catalogue: FruitProduct[] = [
     origin: 'China',
     quantity: '500g',
     qualities: [
-      'juicy',
       'sweet',
+      'juicy',
       'crisp',
-      'refreshing',
     ],
     intents: [
       'naturally-sweet',
-      'refreshing',
       'snacking',
+      'refreshing',
     ],
     keywords: [
       'grapes',
       'red globe',
       'sweet',
       'juicy',
-      'crisp',
-      'refreshing',
     ],
   },
 
@@ -534,21 +469,16 @@ const catalogue: FruitProduct[] = [
     qualities: [
       'sweet',
       'juicy',
-      'crisp',
       'premium',
-      'refreshing',
     ],
     intents: [
-      'naturally-sweet',
       'premium-snacking',
-      'refreshing',
+      'naturally-sweet',
     ],
     keywords: [
       'grapes',
       'black finger',
       'sweet',
-      'juicy',
-      'crisp',
       'premium',
     ],
   },
@@ -561,21 +491,17 @@ const catalogue: FruitProduct[] = [
     qualities: [
       'sweet-tart',
       'juicy',
-      'fresh',
-      'small',
-      'snackable',
+      'light',
     ],
     intents: [
-      'naturally-sweet',
       'light-snacking',
-      'fresh',
+      'breakfast',
+      'refreshing',
     ],
     keywords: [
       'blueberries',
       'berries',
-      'sweet',
-      'tart',
-      'fresh',
+      'light',
       'snack',
     ],
   },
@@ -587,23 +513,18 @@ const catalogue: FruitProduct[] = [
     quantity: '4 pcs',
     qualities: [
       'tangy',
-      'bright',
-      'juicy',
-      'fresh',
       'refreshing',
+      'juicy',
     ],
     intents: [
       'refreshing',
-      'tangy',
       'light-snacking',
     ],
     keywords: [
       'kiwi',
-      'new zealand kiwi',
+      'new zealand',
       'tangy',
-      'fresh',
       'refreshing',
-      'juicy',
     ],
   },
 
@@ -614,23 +535,21 @@ const catalogue: FruitProduct[] = [
     quantity: '4 pcs',
     qualities: [
       'sweet',
-      'juicy',
-      'smooth',
       'tropical',
+      'juicy',
       'refreshing',
     ],
     intents: [
-      'naturally-sweet',
       'refreshing',
-      'tropical',
+      'naturally-sweet',
+      'premium-snacking',
     ],
     keywords: [
       'golden kiwi',
       'kiwi',
       'sweet',
-      'juicy',
       'tropical',
-      'refreshing',
+      'juicy',
     ],
   },
 
@@ -643,7 +562,6 @@ const catalogue: FruitProduct[] = [
       'very sweet',
       'juicy',
       'tropical',
-      'aromatic',
       'rich',
     ],
     intents: [
@@ -698,7 +616,6 @@ const catalogue: FruitProduct[] = [
       'soft',
       'rich',
       'caramel-like',
-      'indulgent',
     ],
     intents: [
       'naturally-sweet',
@@ -766,6 +683,10 @@ const catalogue: FruitProduct[] = [
   },
 ]
 
+/* =================================================
+   API HANDLER
+================================================= */
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -809,7 +730,7 @@ export default async function handler(
       return res.status(400).json({
         success: false,
         error:
-          'Please tell us what you are looking for.',
+          'Please tell Fruit Sense what you are looking for.',
       })
     }
 
@@ -821,12 +742,24 @@ export default async function handler(
       })
     }
 
-    const systemPrompt = `
-You are Fruit Sense.AI, the fruit recommendation
-assistant for The Fruit House.
+    /* =================================================
+       AI SYSTEM PROMPT
+    ================================================= */
 
-Your job is to understand what the customer wants
-and recommend suitable products from the catalogue.
+    const systemPrompt = `
+You are Fruit Sense.AI, the intelligent fruit guide
+for The Fruit House.
+
+Your job is to understand what the customer is:
+
+- feeling
+- experiencing
+- craving
+- looking for
+- trying to include in their lifestyle
+
+Then recommend suitable fruits ONLY from the
+provided The Fruit House catalogue.
 
 IMPORTANT RULES:
 
@@ -836,47 +769,48 @@ IMPORTANT RULES:
 2. NEVER invent a fruit, product, variety,
    origin or product ID.
 
-3. Do NOT recommend anything outside the catalogue.
+3. NEVER recommend anything outside the catalogue.
 
 4. Match the customer's request against the
    product qualities, intents and keywords.
 
-5. Prefer the strongest matches.
+5. Prefer the strongest and most relevant matches.
 
-6. Give practical and simple recommendations.
+6. Give practical, warm and simple recommendations.
 
-7. Do not diagnose medical conditions.
+7. Recommendations must be framed as general food
+   suggestions, not medical advice.
 
-8. Do not claim that a fruit can cure, treat,
-   or prevent a disease.
+8. Do NOT diagnose medical conditions.
 
-9. Do not prescribe medication or medical treatment.
+9. Do NOT claim that any fruit can cure, treat,
+   prevent or guarantee improvement of a disease
+   or medical condition.
 
-10. If the customer describes a serious or persistent
-    medical symptom, recommend speaking with a qualified
-    healthcare professional.
+10. Do NOT prescribe medication or treatment.
 
-11. Recommendations are general food suggestions
-    and are not medical advice.
+11. If the customer describes a serious, dangerous
+    or persistent medical symptom, gently encourage
+    them to speak with a qualified healthcare
+    professional.
 
-12. Recommend between 2 and 4 products when suitable
-    products exist.
+12. Recommend between 2 and 4 products whenever
+    suitable products exist.
 
-13. Keep each reason short and useful.
+13. Keep every recommendation reason short,
+    natural and useful.
 
 14. Return ONLY valid JSON.
 
 15. Do not include markdown.
 
-16. Do not include a thinking process.
+16. Do not include analysis or reasoning.
 
 17. Do not include text before or after the JSON.
 
-18. Your entire response MUST be a single JSON object.
+18. Your entire response MUST be one JSON object.
 
-19. The response must begin with { and end with }.
-
-20. Never output your reasoning or analysis.
+19. The response MUST begin with { and end with }.
 
 Use EXACTLY this structure:
 
@@ -884,10 +818,10 @@ Use EXACTLY this structure:
   "recommendations": [
     {
       "productId": "exact catalogue product id",
-      "reason": "Short explanation"
+      "reason": "Short explanation of why this fruit suits the customer's request"
     }
   ],
-  "summary": "One short friendly sentence"
+  "summary": "One short warm sentence introducing the recommendations"
 }
 
 CATALOGUE:
@@ -917,30 +851,42 @@ ${JSON.stringify(catalogue)}
           headers: {
             Authorization:
               `Bearer ${apiKey}`,
+
             'Content-Type':
               'application/json',
+
+            'HTTP-Referer':
+              'https://the-fruit-house.com',
+
+            'X-Title':
+              'The Fruit House - Fruit Sense AI',
           },
 
-body: JSON.stringify({
-  model: MODEL,
-  messages: [
-    {
-      role: 'system',
-      content: systemPrompt,
-    },
-    {
-      role: 'user',
-      content: message,
-    },
-  ],
-  temperature: 0.1,
-  max_tokens: 600,
-  stream: false,
+          body: JSON.stringify({
+            model: MODEL,
 
-  response_format: {
-    type: 'json_object',
-  },
-}),
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt,
+              },
+
+              {
+                role: 'user',
+                content: message,
+              },
+            ],
+
+            temperature: 0.2,
+
+            max_tokens: 700,
+
+            stream: false,
+
+            response_format: {
+              type: 'json_object',
+            },
+          }),
 
           signal: controller.signal,
         },
@@ -949,69 +895,76 @@ body: JSON.stringify({
       clearTimeout(timeout)
     }
 
-  console.log(
-  'Fruit Sense: OpenRouter responded with status',
-  response.status,
-)
+    console.log(
+      'Fruit Sense: OpenRouter responded with status',
+      response.status,
+    )
 
-const data = await response.json()
+    const data = await response.json()
 
-console.log(
-  'Fruit Sense FULL RESPONSE:',
-  JSON.stringify(data, null, 2),
-)
+    console.log(
+      'Fruit Sense FULL RESPONSE:',
+      JSON.stringify(data, null, 2),
+    )
 
-if (!response.ok) {
-  console.error(
-    'OpenRouter error:',
-    data,
-  )
+    if (!response.ok) {
+      console.error(
+        'OpenRouter error:',
+        data,
+      )
 
-  return res.status(502).json({
-    success: false,
-    error:
-      data?.error?.message ||
-      'Fruit Sense could not generate recommendations right now.',
-  })
-}
+      return res.status(502).json({
+        success: false,
+        error:
+          data?.error?.message ||
+          'Fruit Sense could not generate recommendations right now.',
+      })
+    }
 
-const messageData =
-  data?.choices?.[0]?.message
+    /* =================================================
+       EXTRACT FINAL MODEL RESPONSE
 
-const content =
-  typeof messageData?.content === 'string' &&
-  messageData.content.trim()
-    ? messageData.content
-    : typeof messageData?.reasoning === 'string' &&
-        messageData.reasoning.trim()
-      ? messageData.reasoning
-      : null
+       IMPORTANT:
+       We ONLY use message.content.
 
-console.log(
-  'Fruit Sense extracted response:',
-  content,
-)
+       We NEVER use message.reasoning as the response.
+    ================================================= */
 
-if (
-  typeof content !== 'string' ||
-  !content.trim()
-) {
-  console.error(
-    'Empty OpenRouter response:',
-    data,
-  )
+    const messageData =
+      data?.choices?.[0]?.message
 
-  return res.status(502).json({
-    success: false,
-    error:
-      'Fruit Sense returned an empty response.',
-  })
-}
+    const content =
+      typeof messageData?.content === 'string' &&
+      messageData.content.trim()
+        ? messageData.content.trim()
+        : null
+
+    console.log(
+      'Fruit Sense extracted response:',
+      content,
+    )
+
+    if (!content) {
+      console.error(
+        'Empty OpenRouter response:',
+        data,
+      )
+
+      return res.status(502).json({
+        success: false,
+        error:
+          'Fruit Sense returned an empty response.',
+      })
+    }
 
     console.log(
       'Fruit Sense RAW MODEL RESPONSE:',
       content,
     )
+
+    /* =================================================
+       PARSE AI JSON
+    ================================================= */
 
     let parsed: ModelResponse
 
@@ -1031,9 +984,13 @@ if (
       })
     }
 
-    /*
-     * Final validation against our controlled catalogue.
-     */
+    /* =================================================
+       FINAL CATALOGUE VALIDATION
+
+       AI CANNOT SUCCESSFULLY RETURN PRODUCTS
+       THAT DO NOT EXIST IN OUR CATALOGUE.
+    ================================================= */
+
     const productMap = new Map(
       catalogue.map((product) => [
         product.id,
@@ -1042,9 +999,7 @@ if (
     )
 
     const recommendations =
-      Array.isArray(
-        parsed.recommendations,
-      )
+      Array.isArray(parsed.recommendations)
         ? parsed.recommendations
             .filter(
               (item) =>
@@ -1075,9 +1030,7 @@ if (
             })
         : []
 
-    if (
-      recommendations.length === 0
-    ) {
+    if (recommendations.length === 0) {
       console.error(
         'Fruit Sense returned no valid catalogue products.',
         parsed,
@@ -1086,16 +1039,22 @@ if (
       return res.status(502).json({
         success: false,
         error:
-          'Fruit Sense could not find suitable products right now.',
+          'Fruit Sense could not find suitable fruits right now.',
       })
     }
 
+    /* =================================================
+       SUCCESS RESPONSE
+    ================================================= */
+
     return res.status(200).json({
       success: true,
+
       recommendations,
+
       summary:
         typeof parsed.summary === 'string'
-          ? parsed.summary
+          ? parsed.summary.trim()
           : '',
     })
   } catch (error) {
@@ -1117,6 +1076,7 @@ if (
 
     return res.status(500).json({
       success: false,
+
       error:
         error instanceof Error
           ? error.message
