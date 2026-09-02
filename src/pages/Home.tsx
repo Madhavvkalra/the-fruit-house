@@ -152,46 +152,60 @@ return (
         HERO
     ===================================================== */}
 
-    <section
-      ref={heroRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endTouchInteraction}
-      onPointerCancel={endTouchInteraction}
-      onPointerEnter={(event) => {
-        if (event.pointerType === 'mouse') {
-          setInsideHero(true)
-        }
-      }}
-      onPointerLeave={(event) => {
-        if (event.pointerType === 'mouse') {
-          setInsideHero(false)
-        }
-      }}
-      className="relative h-screen min-h-[650px] overflow-hidden bg-[#0b1b0e] md:cursor-none"
-      style={{
-        height: '100dvh',
-        touchAction: 'pan-y',
-      }}
-    >
+<section
+  ref={heroRef}
+  onPointerDown={handlePointerDown}
+  onPointerMove={handlePointerMove}
+  onPointerUp={endTouchInteraction}
+  onPointerCancel={endTouchInteraction}
+  onPointerEnter={(event) => {
+    if (event.pointerType === 'mouse') {
+      setInsideHero(true)
+    }
+  }}
+  onPointerLeave={(event) => {
+    if (event.pointerType === 'mouse') {
+      setInsideHero(false)
+    }
+  }}
+  className="
+    relative
+    h-screen
+    min-h-[650px]
+    overflow-hidden
+    bg-[#0b1b0e]
+    select-none
+    [-webkit-user-select:none]
+    [-webkit-touch-callout:none]
+    md:cursor-none
+  "
+  style={{
+    height: '100dvh',
+    touchAction: 'pan-y',
+    WebkitUserSelect: 'none',
+    WebkitTouchCallout: 'none',
+    userSelect: 'none',
+  }}
+>
 
-      <img
-        ref={imageRef}
-        src={wholeImage}
-        alt="The Fruit House premium fruit collection"
-        draggable={false}
-        className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
-      />
-
-      <div className="pointer-events-none absolute inset-0 z-10 bg-black/20" />
-
-      <div
-        className="pointer-events-none absolute inset-0 z-10"
-        style={{
-          background:
-            'linear-gradient(90deg, rgba(4,16,7,.58) 0%, rgba(4,16,7,.13) 45%, rgba(4,16,7,.05) 100%)',
-        }}
-      />
+     <img
+  ref={imageRef}
+  src={wholeImage}
+  alt="The Fruit House premium fruit collection"
+  draggable={false}
+  className="
+    pointer-events-none
+    absolute
+    inset-0
+    h-full
+    w-full
+    select-none
+    object-cover
+    [-webkit-user-drag:none]
+    [-webkit-touch-callout:none]
+    [-webkit-user-select:none]
+  "
+/>
 
       {/* =====================================================
           LENS
@@ -215,7 +229,7 @@ return (
           HERO COPY
       ===================================================== */}
 
-      <div className="pointer-events-none absolute left-5 right-5 top-[16%] z-30 text-white sm:left-10 sm:right-auto sm:max-w-[620px] md:left-14">
+      <div className="pointer-events-none select-none absolute left-5 right-5 top-[16%] z-30 text-white sm:left-10 sm:right-auto sm:max-w-[620px] md:left-14">
 
         <p className="mb-4 text-[9px] font-semibold uppercase tracking-[0.3em] text-[#efffb0] sm:mb-5 sm:text-xs">
           Discover what you're eating
