@@ -10,6 +10,8 @@ import Checkout from './pages/Checkout'
 
 import FruitSenseButton from './components/FruitSenseButton'
 
+import Loader from './components/Loader'
+
 import {
   products,
   type Product,
@@ -815,61 +817,10 @@ const endTouchInteraction = (
 return (
   <main className="min-h-screen bg-[#08150b]">
 
-  {isLoaderVisible && (
-  <div
-  className={`fixed inset-0 z-[9999] flex items-center justify-center bg-[#08150b] text-white transition-opacity duration-700 ${
-    isPageLoading
-      ? 'opacity-100'
-      : 'pointer-events-none opacity-0'
-  }`}
->
-
-    <div className="fruit-house-skeleton__content">
-
-          <div className="fruit-house-skeleton__logo" />
-
-          <div className="fruit-house-skeleton__title" />
-
-          <div className="fruit-house-skeleton__line" />
-
-        </div>
-
-    <div className="flex flex-col items-center">
-
-      {/* Logo */}
-      <div
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/[0.04] text-lg text-[#efffb0]"
-        style={{
-          animation: 'loaderPulse 1.8s ease-in-out infinite',
-        }}
-      >
-        ✦
-      </div>
-
-      {/* Brand */}
-      <p className="mt-5 font-playfair text-2xl italic">
-        The Fruit House
-      </p>
-
-      {/* Loading line */}
-      <div className="mt-8 h-px w-40 overflow-hidden bg-white/10">
-        <div
-          className="h-full w-1/2 bg-[#efffb0]"
-          style={{
-            animation: 'loaderProgress 1.4s ease-in-out infinite',
-          }}
-        />
-      </div>
-
-      {/* Label */}
-      <p className="mt-4 text-[7px] font-semibold uppercase tracking-[0.32em] text-white/35">
-        Selecting the finest
-      </p>
-
-    </div>
-
-  </div>
-)}
+<Loader
+  isVisible={isLoaderVisible}
+  isLoading={isPageLoading}
+/>
 
      {/* =========================================================
         HOME — HERO + FRUIT SHOP  (or the HAMPER STUDIO)
