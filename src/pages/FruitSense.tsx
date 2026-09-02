@@ -132,9 +132,21 @@ export default function FruitSense() {
             'Content-Type': 'application/json',
           },
 
-          body: JSON.stringify({
-            message: trimmed,
-          }),
+         body: JSON.stringify({
+  message: trimmed,
+
+  history: messages
+    .filter(
+      (chatMessage) =>
+        chatMessage.role === 'user' ||
+        chatMessage.role === 'assistant'
+    )
+    .slice(-8)
+    .map((chatMessage) => ({
+      role: chatMessage.role,
+      content: chatMessage.content,
+    })),
+}),
         }
       )
 

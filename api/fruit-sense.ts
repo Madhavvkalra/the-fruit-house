@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { products } from '../src/data/products.js'
 
+type ChatHistoryItem = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 type AIRecommendation = {
   productId: string
   reason: string
@@ -26,10 +31,39 @@ function cleanAIResponse(content: string) {
 }
 
 /* =================================================
+   SAFE CONVERSATION HISTORY
+
+   Only allow valid user/assistant messages.
+   Limit history so requests stay small and fast.
+================================================= */
+
+function sanitizeHistory(
+  history: unknown
+): ChatHistoryItem[] {
+  if (!Array.isArray(history)) return []
+
+  return history
+    .filter((item): item is ChatHistoryItem => {
+      return (
+        item &&
+        typeof item === 'object' &&
+        (item.role === 'user' ||
+          item.role === 'assistant') &&
+        typeof item.content === 'string' &&
+        item.content.trim().length > 0
+      )
+    })
+    .slice(-8)
+    .map((item) => ({
+      role: item.role,
+      content: item.content.trim().slice(0, 500),
+    }))
+}
+
+/* =================================================
    LOCAL FALLBACK
 
-   This makes Fruit Sense work even when the free
-   AI provider is overloaded.
+   Fruit Sense still works if the AI provider fails.
 ================================================= */
 
 function getFallbackRecommendations(message: string) {
@@ -45,9 +79,7 @@ function getFallbackRecommendations(message: string) {
       .filter((item) => hasProduct(item.productId))
       .slice(0, 4)
 
-  /* =============================================
-     HUNGRY / FILLING
-  ============================================= */
+  /* HUNGRY / FILLING */
 
   if (
     query.includes('hungry') ||
@@ -63,7 +95,7 @@ function getFallbackRecommendations(message: string) {
         },
         {
           productId: 'medjoul-dates',
-          reason: 'Naturally sweet and satisfying when you need something substantial.',
+          reason: 'Naturally sweet and satisfying when you want something substantial.',
         },
         {
           productId: 'gala-apples',
@@ -71,13 +103,11 @@ function getFallbackRecommendations(message: string) {
         },
       ]),
       summary:
-        'Here are some satisfying fruits for when you want something more filling.',
+        'If you want something satisfying, these are great places to start.',
     }
   }
 
-  /* =============================================
-     LOW / SAD / DOWN
-  ============================================= */
+  /* SAD / LOW */
 
   if (
     query.includes('sad') ||
@@ -90,7 +120,7 @@ function getFallbackRecommendations(message: string) {
       recommendations: pick([
         {
           productId: 'shine-muscat',
-          reason: 'Sweet, juicy grapes that feel like a little treat.',
+          reason: 'Sweet and juicy, like a little premium treat.',
         },
         {
           productId: 'gala-apples',
@@ -106,15 +136,11 @@ function getFallbackRecommendations(message: string) {
         },
       ]),
       summary:
-        'A few sweet and refreshing fruits to brighten your snack time.',
+        'I would go for something sweet and refreshing right now.',
     }
   }
 
-  /* =============================================
-     WEAK / TIRED / LOW ENERGY
-
-     No medical claims.
-  ============================================= */
+  /* TIRED / LOW ENERGY */
 
   if (
     query.includes('weak') ||
@@ -126,7 +152,7 @@ function getFallbackRecommendations(message: string) {
       recommendations: pick([
         {
           productId: 'medjoul-dates',
-          reason: 'Naturally sweet and convenient when you want a quick snack.',
+          reason: 'Naturally sweet and convenient for a quick snack.',
         },
         {
           productId: 'gala-apples',
@@ -134,17 +160,15 @@ function getFallbackRecommendations(message: string) {
         },
         {
           productId: 'shine-muscat',
-          reason: 'Juicy and sweet for a refreshing snack.',
+          reason: 'Juicy and sweet when you want something refreshing.',
         },
       ]),
       summary:
-        'Here are some naturally sweet and refreshing fruit options for you.',
+        'I would keep it simple with something naturally sweet and refreshing.',
     }
   }
 
-  /* =============================================
-     REFRESHING / JUICY
-  ============================================= */
+  /* REFRESHING */
 
   if (
     query.includes('refresh') ||
@@ -163,22 +187,16 @@ function getFallbackRecommendations(message: string) {
           reason: 'Exceptionally juicy with a sweet flavour.',
         },
         {
-          productId: 'watermelon',
-          reason: 'A classic choice when you want something juicy and refreshing.',
-        },
-        {
-          productId: 'kiwi-chile',
-          reason: 'Bright and tangy with a refreshing flavour.',
+          productId: 'golden-kiwi',
+          reason: 'Bright and refreshing with a distinctive flavour.',
         },
       ]),
       summary:
-        'These are some fresh and refreshing choices from The Fruit House.',
+        'For something fresh and refreshing, I would start with these.',
     }
   }
 
-  /* =============================================
-     SWEET
-  ============================================= */
+  /* SWEET */
 
   if (
     query.includes('sweet') ||
@@ -189,7 +207,7 @@ function getFallbackRecommendations(message: string) {
       recommendations: pick([
         {
           productId: 'shine-muscat',
-          reason: 'Beautifully sweet and juicy.',
+          reason: 'Beautifully sweet and exceptionally juicy.',
         },
         {
           productId: 'medjoul-dates',
@@ -201,13 +219,11 @@ function getFallbackRecommendations(message: string) {
         },
       ]),
       summary:
-        'A few naturally sweet picks selected for you.',
+        'If you are craving something sweet, these are my top picks.',
     }
   }
 
-  /* =============================================
-     PREMIUM / SPECIAL
-  ============================================= */
+  /* PREMIUM */
 
   if (
     query.includes('premium') ||
@@ -223,25 +239,23 @@ function getFallbackRecommendations(message: string) {
         },
         {
           productId: 'turkish-cherries',
-          reason: 'A beautiful premium fruit choice for something special.',
+          reason: 'A beautiful choice when you want something special.',
         },
         {
           productId: 'golden-kiwi',
-          reason: 'Bright, distinctive and deliciously premium.',
+          reason: 'Distinctive, bright and wonderfully premium.',
         },
         {
           productId: 'dragon-fruit',
-          reason: 'Visually striking and wonderfully unique.',
+          reason: 'Visually striking and beautifully unique.',
         },
       ]),
       summary:
-        'Here are some premium and special picks from The Fruit House.',
+        'For something genuinely special, these would be my premium picks.',
     }
   }
 
-  /* =============================================
-     DEFAULT
-  ============================================= */
+  /* DEFAULT */
 
   return {
     recommendations: pick([
@@ -259,7 +273,7 @@ function getFallbackRecommendations(message: string) {
       },
     ]),
     summary:
-      'Here are a few handpicked fruits from The Fruit House.',
+      'Tell me what you are craving, and I will help you find something perfect.',
   }
 }
 
@@ -273,85 +287,96 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({
+      success: false,
       error: 'Method not allowed',
     })
   }
 
   try {
-    const { message } = req.body
+    const { message, history } = req.body || {}
 
-    /* =============================================
-       VALIDATE MESSAGE
-    ============================================= */
+    /* VALIDATE MESSAGE */
 
-    if (!message || typeof message !== 'string') {
+    if (
+      !message ||
+      typeof message !== 'string' ||
+      !message.trim()
+    ) {
       return res.status(400).json({
+        success: false,
         error:
           'Please tell Fruit Sense what you are looking for.',
       })
     }
 
+    const userMessage = message.trim().slice(0, 1000)
+
+    const conversationHistory =
+      sanitizeHistory(history)
+
     const OPENROUTER_API_KEY =
       process.env.OPENROUTER_API_KEY
 
-    /* =============================================
-       IF API KEY MISSING → FALLBACK
-    ============================================= */
+    /* API KEY MISSING → FALLBACK */
 
     if (!OPENROUTER_API_KEY) {
       console.warn(
-        'OPENROUTER_API_KEY missing — using local Fruit Sense'
+        'OPENROUTER_API_KEY missing — using fallback'
       )
 
       return res.status(200).json({
         success: true,
         source: 'fallback',
-        ...getFallbackRecommendations(message),
+        ...getFallbackRecommendations(userMessage),
       })
     }
 
-    /* =============================================
-       BUILD SMALLER CATALOGUE
-
-       IMPORTANT:
-       Don't send unnecessary fields to the model.
-    ============================================= */
+    /* BUILD CATALOGUE */
 
     const catalogue = products.map((product) => ({
       id: product.id,
       name: product.name,
       description: product.description || '',
+      origin: (product as any).origin || '',
     }))
 
-    /* =============================================
-       SYSTEM PROMPT
+    /* SYSTEM PROMPT */
 
-       Keep this SHORT to reduce token usage.
-    ============================================= */
+    const systemPrompt = `You are Fruit Sense, the friendly fruit concierge for The Fruit House.
 
-    const systemPrompt = `You are Fruit Sense for The Fruit House.
+You are having a natural conversation with the customer.
 
-Recommend ONLY products from this catalogue.
+Use the previous conversation to understand follow-up messages. For example, if the customer says "something more premium", understand what they were discussing previously.
+
+Recommend ONLY fruits that exist in the catalogue below.
 
 Rules:
 - Return ONLY valid JSON.
 - No markdown.
-- No explanation.
-- Recommend exactly 3 fruits.
+- No text outside JSON.
+- Recommend exactly 3 fruits whenever appropriate.
 - Use exact product IDs from the catalogue.
-- Reasons must be under 12 words.
-- Summary must be under 15 words.
-- Never diagnose or make medical claims.
+- Keep each reason under 18 words.
+- Summary should sound warm, natural and conversational.
+- Summary must be under 35 words.
+- Never expose internal reasoning.
+- Never diagnose illness or make medical claims.
+- You may respond conversationally, but recommendations must remain based only on catalogue products.
 
-JSON format:
-{"recommendations":[{"productId":"id","reason":"short reason"}],"summary":"short summary"}
+Return exactly this format:
+
+{
+  "recommendations": [
+    {
+      "productId": "exact-product-id",
+      "reason": "short natural reason"
+    }
+  ],
+  "summary": "A warm, conversational response to the user."
+}
 
 Catalogue:
 ${JSON.stringify(catalogue)}`
-
-    /* =============================================
-       AI CONFIG
-    ============================================= */
 
     const model =
       'nvidia/nemotron-3-super-120b-a12b:free'
@@ -362,7 +387,7 @@ ${JSON.stringify(catalogue)}`
     let lastError: unknown = null
 
     /* =============================================
-       TRY AI
+       AI REQUEST WITH RETRIES
     ============================================= */
 
     for (
@@ -372,7 +397,7 @@ ${JSON.stringify(catalogue)}`
     ) {
       try {
         console.log(
-          `Fruit Sense: trying ${model} — attempt ${attempt}/${MAX_ATTEMPTS}`
+          `Fruit Sense attempt ${attempt}/${MAX_ATTEMPTS}`
         )
 
         const response = await fetch(
@@ -401,42 +426,52 @@ ${JSON.stringify(catalogue)}`
                   role: 'system',
                   content: systemPrompt,
                 },
+
+                ...conversationHistory,
+
                 {
                   role: 'user',
-                  content: message.trim(),
+                  content: userMessage,
                 },
               ],
 
-              temperature: 0.4,
+              temperature: 0.5,
 
-              /*
-               * IMPORTANT:
-               * Give the model enough tokens.
-               *
-               * Nemotron may use tokens internally,
-               * so 220 was too low.
-               */
               max_tokens: 800,
             }),
           }
         )
 
-        const data = await response.json()
+        const responseText = await response.text()
 
-        console.log(
-          `Fruit Sense FULL RESPONSE — attempt ${attempt}:`,
-          JSON.stringify(data, null, 2)
-        )
+        let data: any
 
-        /* =========================================
-           PROVIDER ERROR
-        ========================================= */
+        try {
+          data = JSON.parse(responseText)
+        } catch {
+          lastError =
+            responseText ||
+            'OpenRouter returned invalid JSON'
+
+          console.error(
+            'Fruit Sense provider returned non-JSON:',
+            responseText
+          )
+
+          if (attempt < MAX_ATTEMPTS) {
+            await sleep(attempt * 1500)
+          }
+
+          continue
+        }
+
+        /* PROVIDER ERROR */
 
         if (!response.ok || data?.error) {
           lastError = data?.error || data
 
           console.error(
-            `Fruit Sense failed attempt ${attempt}:`,
+            `Fruit Sense provider error on attempt ${attempt}:`,
             lastError
           )
 
@@ -447,20 +482,17 @@ ${JSON.stringify(catalogue)}`
           continue
         }
 
-        /* =========================================
-           CHECK TRUNCATION
-        ========================================= */
+        /* TRUNCATION */
 
         const finishReason =
           data?.choices?.[0]?.finish_reason
 
         if (finishReason === 'length') {
-          console.warn(
-            'Fruit Sense response was truncated'
-          )
+          lastError = 'Response truncated'
 
-          lastError =
-            'Response truncated by token limit'
+          console.warn(
+            'Fruit Sense response truncated'
+          )
 
           if (attempt < MAX_ATTEMPTS) {
             await sleep(attempt * 1500)
@@ -469,20 +501,13 @@ ${JSON.stringify(catalogue)}`
           continue
         }
 
-        /* =========================================
-           GET CONTENT
-        ========================================= */
+        /* GET AI CONTENT */
 
         const content =
           typeof data?.choices?.[0]?.message?.content ===
           'string'
             ? data.choices[0].message.content.trim()
             : ''
-
-        console.log(
-          `Fruit Sense RAW RESPONSE — attempt ${attempt}:`,
-          content
-        )
 
         if (!content) {
           lastError = 'Empty AI response'
@@ -497,7 +522,7 @@ ${JSON.stringify(catalogue)}`
         rawResponse = content
 
         console.log(
-          `Fruit Sense SUCCESS on attempt ${attempt}`
+          `Fruit Sense AI succeeded on attempt ${attempt}`
         )
 
         break
@@ -505,7 +530,7 @@ ${JSON.stringify(catalogue)}`
         lastError = error
 
         console.error(
-          `Fruit Sense network error — attempt ${attempt}:`,
+          `Fruit Sense network error on attempt ${attempt}:`,
           error
         )
 
@@ -515,29 +540,22 @@ ${JSON.stringify(catalogue)}`
       }
     }
 
-    /* =============================================
-       AI FAILED → LOCAL FALLBACK
-
-       THIS IS THE IMPORTANT PART.
-       Your website will still work.
-    ============================================= */
+    /* AI FAILED → FALLBACK */
 
     if (!rawResponse) {
       console.warn(
-        'Fruit Sense AI unavailable — using fallback:',
+        'Fruit Sense AI unavailable — fallback:',
         lastError
       )
 
       return res.status(200).json({
         success: true,
         source: 'fallback',
-        ...getFallbackRecommendations(message),
+        ...getFallbackRecommendations(userMessage),
       })
     }
 
-    /* =============================================
-       CLEAN RESPONSE
-    ============================================= */
+    /* CLEAN RESPONSE */
 
     const cleanedResponse =
       cleanAIResponse(rawResponse)
@@ -553,14 +571,10 @@ ${JSON.stringify(catalogue)}`
       jsonEnd === -1 ||
       jsonEnd <= jsonStart
     ) {
-      console.warn(
-        'Fruit Sense invalid JSON shape — using fallback'
-      )
-
       return res.status(200).json({
         success: true,
         source: 'fallback',
-        ...getFallbackRecommendations(message),
+        ...getFallbackRecommendations(userMessage),
       })
     }
 
@@ -570,30 +584,25 @@ ${JSON.stringify(catalogue)}`
         jsonEnd + 1
       )
 
-    /* =============================================
-       PARSE JSON
-    ============================================= */
+    /* PARSE AI JSON */
 
     let parsedResponse: AIResponse
 
     try {
       parsedResponse = JSON.parse(jsonResponse)
-    } catch (error) {
-      console.error(
-        'Fruit Sense JSON parsing failed:',
-        jsonResponse
+    } catch {
+      console.warn(
+        'Fruit Sense returned invalid JSON — fallback used'
       )
 
       return res.status(200).json({
         success: true,
         source: 'fallback',
-        ...getFallbackRecommendations(message),
+        ...getFallbackRecommendations(userMessage),
       })
     }
 
-    /* =============================================
-       VALIDATE PRODUCT IDS
-    ============================================= */
+    /* VALIDATE PRODUCTS */
 
     const validProductIds = new Set(
       products.map((product) => product.id)
@@ -616,29 +625,20 @@ ${JSON.stringify(catalogue)}`
         })
         .slice(0, 4)
 
-    /* =============================================
-       INVALID AI RESPONSE → FALLBACK
-    ============================================= */
+    /* INVALID RECOMMENDATIONS → FALLBACK */
 
     if (validRecommendations.length === 0) {
-      console.warn(
-        'Fruit Sense returned invalid recommendations'
-      )
-
       return res.status(200).json({
         success: true,
         source: 'fallback',
-        ...getFallbackRecommendations(message),
+        ...getFallbackRecommendations(userMessage),
       })
     }
 
-    /* =============================================
-       FINAL SUCCESS
-    ============================================= */
+    /* FINAL RESPONSE */
 
-    const finalResponse = {
+    return res.status(200).json({
       success: true,
-
       source: 'ai',
 
       recommendations: validRecommendations,
@@ -647,26 +647,15 @@ ${JSON.stringify(catalogue)}`
         typeof parsedResponse.summary === 'string' &&
         parsedResponse.summary.trim()
           ? parsedResponse.summary.trim()
-          : 'Here are some fruits selected especially for you.',
-    }
-
-    console.log(
-      'Fruit Sense FINAL RESPONSE:',
-      finalResponse
-    )
-
-    return res.status(200).json(finalResponse)
+          : 'Based on what you told me, these would be my picks for you.',
+    })
   } catch (error) {
     console.error(
       'Fruit Sense unexpected error:',
       error
     )
 
-    /*
-     * Final safety net.
-     */
-
-    const message =
+    const fallbackMessage =
       typeof req.body?.message === 'string'
         ? req.body.message
         : ''
@@ -674,7 +663,7 @@ ${JSON.stringify(catalogue)}`
     return res.status(200).json({
       success: true,
       source: 'fallback',
-      ...getFallbackRecommendations(message),
+      ...getFallbackRecommendations(fallbackMessage),
     })
   }
 }
