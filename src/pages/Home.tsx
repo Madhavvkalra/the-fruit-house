@@ -187,8 +187,7 @@ return (
     userSelect: 'none',
   }}
 >
-
-     <img
+<img
   ref={imageRef}
   src={wholeImage}
   alt="The Fruit House premium fruit collection"
@@ -205,6 +204,17 @@ return (
     [-webkit-touch-callout:none]
     [-webkit-user-select:none]
   "
+/>
+
+{/* DARK TINT */}
+<div className="pointer-events-none absolute inset-0 z-10 bg-black/20" />
+
+<div
+  className="pointer-events-none absolute inset-0 z-10"
+  style={{
+    background:
+      'linear-gradient(90deg, rgba(4,16,7,.58) 0%, rgba(4,16,7,.13) 45%, rgba(4,16,7,.05) 100%)',
+  }}
 />
 
       {/* =====================================================

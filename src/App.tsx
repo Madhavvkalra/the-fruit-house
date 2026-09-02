@@ -755,41 +755,52 @@ const addHamperToCart = (entry: HamperCartEntry) => {
     detectFruit(x, y)
   }
 
-  const handlePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.pointerType === 'mouse') return
+  const handlePointerDown = (
+  event: ReactPointerEvent<HTMLElement>
+) => {
+  if (event.pointerType === 'mouse') return
 
+  // Stop mobile long-press selection/copy behavior
+  event.preventDefault()
+
+  pauseAutoForUser()
+  setIsTouching(true)
+  setInsideHero(true)
+
+  event.currentTarget.setPointerCapture(event.pointerId)
+
+  updatePointer(event)
+}
+
+const handlePointerMove = (
+  event: ReactPointerEvent<HTMLElement>
+) => {
+  if (event.pointerType === 'mouse') {
     pauseAutoForUser()
-    setIsTouching(true)
     setInsideHero(true)
-
-    event.currentTarget.setPointerCapture(event.pointerId)
     updatePointer(event)
+    return
   }
 
-  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.pointerType === 'mouse') {
-      pauseAutoForUser()
-      setInsideHero(true)
-      updatePointer(event)
-      return
-    }
+  // Keep the drag interaction native-free
+  event.preventDefault()
 
-    if (!isTouching) return
-    updatePointer(event)
-  }
+  if (!isTouching) return
 
-  const endTouchInteraction = (
-    event?: ReactPointerEvent<HTMLElement>
-  ) => {
-    if (event?.pointerType === 'mouse') return
+  updatePointer(event)
+}
 
-    setIsTouching(false)
-    setInsideHero(false)
+const endTouchInteraction = (
+  event?: ReactPointerEvent<HTMLElement>
+) => {
+  if (event?.pointerType === 'mouse') return
 
-    rawPointer.current = { x: -500, y: -500 }
-    smoothPointer.current = { x: -500, y: -500 }
-  }
+  setIsTouching(false)
+  setInsideHero(false)
 
+  rawPointer.current = { x: -500, y: -500 }
+  smoothPointer.current = { x: -500, y: -500 }
+}
   const showLens = isAutoActive || (isMobile ? isTouching : insideHero)
 
   // Responsive: never lets the lens dominate the viewport.
