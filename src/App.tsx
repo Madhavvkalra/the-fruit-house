@@ -954,12 +954,14 @@ basket={basket}
 )}
 
   {/* =========================================================
-    FRUIT SENSE AI
+    FRUIT SENSE AI — HOME PAGE ONLY
 ========================================================= */}
 
-<FruitSenseButton
-  hamperMobilePanelVisible={hamperMobilePanelVisible}
-/>
+{!routeProductId && !isHamperStudio && (
+  <FruitSenseButton
+    hamperMobilePanelVisible={hamperMobilePanelVisible}
+  />
+)}
     {/* =========================================================
         FLOATING BASKET
     ========================================================= */}

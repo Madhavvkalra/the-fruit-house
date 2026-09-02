@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import {
   products,
   type Product,
@@ -97,6 +99,8 @@ export default function ProductPopup({
   addToBasket,
   updateBasketQuantity,
 }: ProductPopupProps) {
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+
   if (!selectedProduct) return null
 
   return (
@@ -124,38 +128,40 @@ export default function ProductPopup({
           CLOSE BUTTON
           ===================================================== */}
 
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          closeProductPopup()
-        }}
-        aria-label="Close product details"
-        className="
-          absolute
-          right-4
-          top-4
-          z-[50]
-          flex
-          h-11
-          w-11
-          items-center
-          justify-center
-          rounded-full
-          bg-white/90
-          text-2xl
-          font-light
-          text-[#17351d]
-          shadow-lg
-          backdrop-blur-md
-          transition
-          hover:bg-[#17351d]
-          hover:text-white
-          active:scale-90
-        "
-      >
-        ×
-      </button>
+     <div className="sticky top-4 z-[50] flex h-0 justify-end px-4">
+  <button
+    type="button"
+    onClick={(event) => {
+      event.stopPropagation()
+      closeProductPopup()
+    }}
+    aria-label="Close product details"
+    className="
+      flex
+      h-11
+      w-11
+      items-center
+      justify-center
+      rounded-full
+      border
+      border-[#17351d]/10
+      bg-white/90
+      text-2xl
+      font-light
+      text-[#17351d]
+      shadow-lg
+      backdrop-blur-md
+      transition-all
+      duration-200
+      hover:scale-105
+      hover:bg-[#17351d]
+      hover:text-white
+      active:scale-90
+    "
+  >
+    ×
+  </button>
+</div>
 
       {/* =====================================================
           IMAGE SECTION
@@ -514,44 +520,337 @@ export default function ProductPopup({
             </div>
           </div>
 
-          {/* FULL DETAILS */}
+        {/* =================================================
+    WHY YOU'LL LOVE IT
+    ================================================= */}
 
+<div className="mt-8">
+  <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#71864d]">
+    Why you'll love it
+  </p>
+
+  <div className="mt-4 grid grid-cols-2 gap-3">
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-white/60 p-4">
+      <div className="text-xl">✦</div>
+
+      <p className="mt-3 text-sm font-semibold">
+        Carefully selected
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
+        Chosen for exceptional appearance, flavour and
+        freshness.
+      </p>
+    </div>
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-white/60 p-4">
+      <div className="text-xl">◈</div>
+
+      <p className="mt-3 text-sm font-semibold">
+        Premium quality
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
+        A fruit experience selected to feel special from
+        the very first bite.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+{/* =================================================
+    TASTE & EXPERIENCE
+    ================================================= */}
+
+<div className="mt-8">
+  <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#71864d]">
+    The experience
+  </p>
+
+  <div className="mt-4 rounded-[22px] border border-[#17351d]/10 bg-[#17351d] p-5 text-[#f5f3e8]">
+
+    <p className="font-playfair text-[24px] italic">
+      A little moment of luxury.
+    </p>
+
+    <p className="mt-3 text-sm leading-6 text-white/60">
+      Enjoy {selectedProduct.name} at its freshest and
+      let its natural flavour, texture and character do
+      the talking.
+    </p>
+
+    <div className="mt-5 flex flex-wrap gap-2">
+
+      {[
+        'Naturally delicious',
+        'Freshly selected',
+        'Premium quality',
+      ].map((quality) => (
+        <span
+          key={quality}
+          className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-[9px] uppercase tracking-[0.12em] text-[#efffb0]/80"
+        >
+          {quality}
+        </span>
+      ))}
+
+    </div>
+  </div>
+</div>
+
+
+{/* =================================================
+    NUTRITION
+    ================================================= */}
+
+<div className="mt-8">
+
+  <div className="flex items-end justify-between gap-4">
+
+    <div>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#71864d]">
+        Nutrition
+      </p>
+
+      <h3 className="mt-2 font-playfair text-[26px] italic">
+        Naturally good.
+      </h3>
+    </div>
+
+    <span className="text-[9px] text-[#17351d]/35">
+      Approx. per 100g
+    </span>
+
+  </div>
+
+  <div className="mt-4 grid grid-cols-2 gap-3">
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-[#efffb0]/35 p-4">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-[#17351d]/40">
+        Energy
+      </p>
+
+      <p className="mt-2 font-playfair text-[26px]">
+        ~60
+      </p>
+
+      <p className="text-[10px] text-[#17351d]/40">
+        kcal
+      </p>
+    </div>
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-white/60 p-4">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-[#17351d]/40">
+        Carbohydrates
+      </p>
+
+      <p className="mt-2 font-playfair text-[26px]">
+        ~15g
+      </p>
+
+      <p className="text-[10px] text-[#17351d]/40">
+        naturally occurring
+      </p>
+    </div>
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-white/60 p-4">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-[#17351d]/40">
+        Fibre
+      </p>
+
+      <p className="mt-2 font-playfair text-[26px]">
+        ~3g
+      </p>
+
+      <p className="text-[10px] text-[#17351d]/40">
+        dietary fibre
+      </p>
+    </div>
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-[#e9eadb] p-4">
+      <p className="text-[9px] uppercase tracking-[0.16em] text-[#17351d]/40">
+        Naturally
+      </p>
+
+      <p className="mt-2 font-playfair text-[22px]">
+        Fresh
+      </p>
+
+      <p className="mt-1 text-[10px] text-[#17351d]/40">
+        real fruit goodness
+      </p>
+    </div>
+
+  </div>
+
+  <p className="mt-3 text-[10px] leading-5 text-[#17351d]/35">
+    Nutritional values are approximate and can naturally
+    vary depending on variety, ripeness and growing
+    conditions.
+  </p>
+
+</div>
+
+
+{/* =================================================
+    STORAGE & FRESHNESS
+    ================================================= */}
+
+<div className="mt-8">
+
+  <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#71864d]">
+    Freshness guide
+  </p>
+
+  <div className="mt-4 space-y-3">
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-white/60 p-4">
+
+      <div className="flex gap-4">
+
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#efffb0] text-lg">
+          ❄
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold">
+            Store with care
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
+            Keep refrigerated when appropriate and avoid
+            unnecessary exposure to heat for the best
+            freshness.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <div className="rounded-[20px] border border-[#17351d]/10 bg-[#faf8ef] p-4">
+
+      <div className="flex gap-4">
+
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef0e3] text-lg">
+          ✦
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold">
+            Best enjoyed fresh
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-[#17351d]/50">
+            Wash before enjoying and serve when the fruit
+            is at its freshest for the best flavour and
+            texture.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{/* =================================================
+    FAQs
+    ================================================= */}
+
+<div className="mt-9">
+
+  <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#71864d]">
+    Questions
+  </p>
+
+  <h3 className="mt-2 font-playfair text-[28px] italic">
+    Good to know.
+  </h3>
+
+  <div className="mt-5 overflow-hidden rounded-[22px] border border-[#17351d]/10 bg-white/60">
+
+    {[
+      {
+        question: `Where does this ${selectedProduct.name} come from?`,
+        answer: `This fruit is sourced from ${selectedProduct.origin} and selected for freshness, appearance and overall quality.`,
+      },
+      {
+        question: 'How should I store it?',
+        answer: 'For the best experience, follow the freshness guidance above and enjoy the fruit while it is at its best.',
+      },
+      {
+        question: 'How do I know it is ready to enjoy?',
+        answer: 'Fresh fruit naturally changes with ripeness. Check its appearance, texture and aroma, and enjoy it according to your preferred level of ripeness.',
+      },
+      {
+        question: 'Can I order different quantities?',
+        answer: 'Yes. Choose your preferred selection above before adding the fruit to your basket.',
+      },
+    ].map((faq, index) => {
+      const isOpen = openFaq === index
+
+      return (
+        <div
+          key={faq.question}
+          className={
+            index > 0
+              ? 'border-t border-[#17351d]/10'
+              : ''
+          }
+        >
           <button
             type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-            }}
-            className="
-              mt-3
-              flex
-              w-full
-              items-center
-              justify-between
-              rounded-[18px]
-              border
-              border-[#17351d]/10
-              bg-[#faf8ef]
-              px-4
-              py-4
-              text-left
-              transition
-              hover:bg-white
-            "
+            onClick={() =>
+              setOpenFaq(
+                isOpen ? null : index
+              )
+            }
+            className="flex w-full items-center justify-between gap-5 px-5 py-5 text-left"
           >
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef0e3] text-[#17351d]">
-                ≡
-              </div>
+            <span className="text-sm font-semibold">
+              {faq.question}
+            </span>
 
-              <span className="text-sm font-semibold">
-                Full details, nutrition & FAQs
-              </span>
-            </div>
-
-            <span className="text-xl">
-              →
+            <span
+              className={`
+                text-xl
+                text-[#17351d]/45
+                transition-transform
+                duration-300
+                ${isOpen ? 'rotate-45' : 'rotate-0'}
+              `}
+            >
+              +
             </span>
           </button>
+
+          <div
+            className={`
+              grid
+              transition-all
+              duration-300
+              ${
+                isOpen
+                  ? 'grid-rows-[1fr] opacity-100'
+                  : 'grid-rows-[0fr] opacity-0'
+              }
+            `}
+          >
+            <div className="overflow-hidden">
+              <p className="px-5 pb-5 text-xs leading-6 text-[#17351d]/50">
+                {faq.answer}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    })}
+
+  </div>
+</div>
 
           {/* =================================================
               ADD TO BASKET / QUANTITY

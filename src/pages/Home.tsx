@@ -6,7 +6,6 @@ import type {
 import {
   ArrowUpRight,
   MapPin,
-  Menu,
 } from 'lucide-react'
 
 import ProductCard from '../components/ProductCard'
@@ -14,6 +13,8 @@ import RollingNumber from '../components/RollingNumber'
 import HamperQuoteRotator from '../components/hamper/HamperQuoteRotator'
 
 import type { StudioMode } from './HamperStudio'
+
+import Navbar from '../components/Navbar'
 
 import {
   products,
@@ -145,57 +146,7 @@ export default function Home({
 return (
   <main className="min-h-screen bg-[#08150b]">
 
-    {/* =====================================================
-        NAVBAR
-    ===================================================== */}
-
-    <nav className="fixed left-0 right-0 top-0 z-[100] flex items-center justify-between p-5 md:px-10 md:py-7">
-
-      <div className="flex items-center gap-3 text-white">
-
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-xl">
-          ✦
-        </div>
-
-        <span className="font-playfair text-xl italic sm:text-2xl md:text-[27px]">
-          The Fruit House
-        </span>
-
-      </div>
-
-      <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/20 p-2 backdrop-blur-xl md:flex">
-
-        <button className="rounded-full bg-white px-5 py-2 text-sm font-medium text-[#17351d]">
-          Fruits
-        </button>
-
-        {[
-          'Seasonal',
-          'Origins',
-          'Our Story',
-          'Journal',
-        ].map((item) => (
-          <button
-            key={item}
-            className="rounded-full px-5 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-          >
-            {item}
-          </button>
-        ))}
-
-      </div>
-
-      <button className="hidden items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-medium text-white backdrop-blur-xl transition hover:bg-white hover:text-[#17351d] md:flex">
-        Explore Collection
-        <ArrowUpRight size={15} />
-      </button>
-
-      <button className="text-white md:hidden">
-        <Menu size={27} />
-      </button>
-
-    </nav>
-
+<Navbar />
 
     {/* =====================================================
         HERO
@@ -417,23 +368,6 @@ return (
 
         </div>
       )}
-
-
-      {/* =====================================================
-          MOBILE EXPLORE BUTTON
-      ===================================================== */}
-
-      {!isTouching && (
-        <div className="absolute bottom-6 left-5 right-5 z-50 md:hidden">
-
-          <button className="flex w-full items-center justify-center gap-2 rounded-full bg-[#efffb0] px-7 py-3.5 text-sm font-semibold text-[#17351d] shadow-xl">
-            Explore Collection
-            <ArrowUpRight size={16} />
-          </button>
-
-        </div>
-      )}
-
 
       {/* =====================================================
           MOBILE FRUIT DISCOVERY
