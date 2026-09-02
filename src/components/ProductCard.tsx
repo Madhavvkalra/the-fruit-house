@@ -121,30 +121,75 @@ export default function ProductCard({
   const quantity = basketItem?.quantity ?? 0
   const isInBasket = quantity > 0
 
-  /* =========================================================
-     ORIGIN FLAG
-     ========================================================= */
+/* =========================================================
+   ORIGIN FLAG
+   ========================================================= */
 
-  const originFlags: Record<string, string> = {
-    'New Zealand': '🇳🇿',
-    Kenya: '🇰🇪',
-    USA: '🇺🇸',
-    China: '🇨🇳',
-    Chile: '🇨🇱',
-    Vietnam: '🇻🇳',
-    Peru: '🇵🇪',
-    India: '🇮🇳',
-    Australia: '🇦🇺',
-    Japan: '🇯🇵',
-    Mexico: '🇲🇽',
-    Turkey: '🇹🇷',
-    Spain: '🇪🇸',
-    Italy: '🇮🇹',
-    SouthAfrica: '🇿🇦',
-  }
+const originCodes: Record<string, string> = {
+  'New Zealand': 'nz',
+  Kenya: 'ke',
+  USA: 'us',
+  'United States': 'us',
 
-  const originFlag =
-    originFlags[product.origin] ?? '🌎'
+  China: 'cn',
+  Chile: 'cl',
+  Vietnam: 'vn',
+  Peru: 'pe',
+  India: 'in',
+  Australia: 'au',
+  Japan: 'jp',
+  Mexico: 'mx',
+
+  Turkey: 'tr',
+  Türkiye: 'tr',
+
+  Spain: 'es',
+  Italy: 'it',
+  'South Africa': 'za',
+  Egypt: 'eg',
+
+  Iran: 'ir',
+  Iraq: 'iq',
+  Tunisia: 'tn',
+
+  Afghanistan: 'af',
+  Algeria: 'dz',
+  Argentina: 'ar',
+  Austria: 'at',
+  Belgium: 'be',
+  Bangladesh: 'bd',
+  Brazil: 'br',
+  Canada: 'ca',
+  Colombia: 'co',
+
+  'Costa Rica': 'cr',
+
+  Ecuador: 'ec',
+  France: 'fr',
+  Germany: 'de',
+  Greece: 'gr',
+  Israel: 'il',
+  Jordan: 'jo',
+  Morocco: 'ma',
+  Netherlands: 'nl',
+  Pakistan: 'pk',
+  Philippines: 'ph',
+  Portugal: 'pt',
+
+  Saudi: 'sa',
+  'Saudi Arabia': 'sa',
+
+  Thailand: 'th',
+
+  UAE: 'ae',
+  'United Arab Emirates': 'ae',
+
+  UK: 'gb',
+  'United Kingdom': 'gb',
+}
+
+const originCode =
+  originCodes[product.origin.trim()] || 'un'
 
   /* =========================================================
      PACK / QUANTITY DESCRIPTION
@@ -280,9 +325,11 @@ export default function ProductCard({
             sm:text-[9px]
           "
         >
-          <span className="text-[11px] leading-none">
-            {originFlag}
-          </span>
+          <img
+  src={`https://flagcdn.com/w40/${originCode}.png`}
+  alt={`${product.origin} flag`}
+  className="h-3 w-5 rounded-[2px] object-cover"
+/>
 
           <span className="max-w-[90px] truncate">
             {product.origin}

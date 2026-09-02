@@ -10,23 +10,110 @@ import RollingNumber from './RollingNumber'
 const FRUIT_SHOP_IMAGE = '/fruit-shop-placeholder.png'
 
 const countryFlags: Record<string, string> = {
+  // Existing countries
   'New Zealand': '🇳🇿',
-  'Washington, USA': '🇺🇸',
-  USA: '🇺🇸',
-  China: '🇨🇳',
-  Turkey: '🇹🇷',
   Kenya: '🇰🇪',
-  Vietnam: '🇻🇳',
-  UAE: '🇦🇪',
-  'South Africa': '🇿🇦',
-  Egypt: '🇪🇬',
-  Peru: '🇵🇪',
+  USA: '🇺🇸',
+  'United States': '🇺🇸',
+  'United States of America': '🇺🇸',
+
+  China: '🇨🇳',
   Chile: '🇨🇱',
+  Vietnam: '🇻🇳',
+  Peru: '🇵🇪',
   India: '🇮🇳',
+  Australia: '🇦🇺',
+  Japan: '🇯🇵',
+  Mexico: '🇲🇽',
+  Turkey: '🇹🇷',
+  Türkiye: '🇹🇷',
+  Spain: '🇪🇸',
+  Italy: '🇮🇹',
+  'South Africa': '🇿🇦',
+
+  France: '🇫🇷',
+  Germany: '🇩🇪',
+  Egypt: '🇪🇬',
+  Brazil: '🇧🇷',
+  Argentina: '🇦🇷',
+  Thailand: '🇹🇭',
+  Philippines: '🇵🇭',
+  Greece: '🇬🇷',
+  Netherlands: '🇳🇱',
+  Belgium: '🇧🇪',
+  Morocco: '🇲🇦',
+  Israel: '🇮🇱',
+
+  'South Korea': '🇰🇷',
+  Korea: '🇰🇷',
+  Taiwan: '🇹🇼',
+
+  // Middle East
   Iran: '🇮🇷',
   Iraq: '🇮🇶',
   Tunisia: '🇹🇳',
-  Japan: '🇯🇵',
+  Jordan: '🇯🇴',
+  Lebanon: '🇱🇧',
+  Oman: '🇴🇲',
+  Qatar: '🇶🇦',
+  Kuwait: '🇰🇼',
+  Bahrain: '🇧🇭',
+  'Saudi Arabia': '🇸🇦',
+  Saudi: '🇸🇦',
+  UAE: '🇦🇪',
+  'United Arab Emirates': '🇦🇪',
+
+  // Asia
+  Pakistan: '🇵🇰',
+  Bangladesh: '🇧🇩',
+  Nepal: '🇳🇵',
+  Afghanistan: '🇦🇫',
+  Indonesia: '🇮🇩',
+  Malaysia: '🇲🇾',
+  Singapore: '🇸🇬',
+  Cambodia: '🇰🇭',
+  Laos: '🇱🇦',
+  Myanmar: '🇲🇲',
+
+  // Europe
+  Portugal: '🇵🇹',
+  Austria: '🇦🇹',
+  Switzerland: '🇨🇭',
+  Poland: '🇵🇱',
+  Denmark: '🇩🇰',
+  Sweden: '🇸🇪',
+  Norway: '🇳🇴',
+  Finland: '🇫🇮',
+  Ireland: '🇮🇪',
+  UK: '🇬🇧',
+  'United Kingdom': '🇬🇧',
+  Russia: '🇷🇺',
+  Ukraine: '🇺🇦',
+
+  // Africa
+  Algeria: '🇩🇿',
+  Ethiopia: '🇪🇹',
+  Tanzania: '🇹🇿',
+  Uganda: '🇺🇬',
+  Ghana: '🇬🇭',
+  Nigeria: '🇳🇬',
+  Zimbabwe: '🇿🇼',
+
+  // Americas
+  Canada: '🇨🇦',
+  Colombia: '🇨🇴',
+  Ecuador: '🇪🇨',
+  Bolivia: '🇧🇴',
+  Uruguay: '🇺🇾',
+  Paraguay: '🇵🇾',
+
+  'Costa Rica': '🇨🇷',
+  Guatemala: '🇬🇹',
+  Panama: '🇵🇦',
+
+  // Other
+  'Dominican Republic': '🇩🇴',
+  Jamaica: '🇯🇲',
 }
 
 type BasketItem = {

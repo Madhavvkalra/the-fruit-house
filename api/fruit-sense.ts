@@ -77,7 +77,7 @@ function getFallbackRecommendations(message: string) {
   ) =>
     items
       .filter((item) => hasProduct(item.productId))
-      .slice(0, 4)
+      .slice(0, 3)
 
   /* HUNGRY / FILLING */
 
@@ -314,22 +314,21 @@ export default async function handler(
     const conversationHistory =
       sanitizeHistory(history)
 
-    const OPENROUTER_API_KEY =
-      process.env.OPENROUTER_API_KEY
+const GROQ_API_KEY = process.env.GROQ_API_KEY
 
-    /* API KEY MISSING → FALLBACK */
+/* API KEY MISSING → FALLBACK */
 
-    if (!OPENROUTER_API_KEY) {
-      console.warn(
-        'OPENROUTER_API_KEY missing — using fallback'
-      )
+if (!GROQ_API_KEY) {
+  console.warn(
+    'GROQ_API_KEY missing — using fallback'
+  )
 
-      return res.status(200).json({
-        success: true,
-        source: 'fallback',
-        ...getFallbackRecommendations(userMessage),
-      })
-    }
+  return res.status(200).json({
+    success: true,
+    source: 'fallback',
+    ...getFallbackRecommendations(userMessage),
+  })
+}
 
     /* BUILD CATALOGUE */
 
@@ -342,118 +341,68 @@ export default async function handler(
 
     /* SYSTEM PROMPT */
 
-const systemPrompt = `You are Fruit Sense, the intelligent and playful fruit concierge for The Fruit House.
+const systemPrompt = `You are Fruit Sense, the premium, playful and slightly quirky fruit concierge for The Fruit House.
 
-Your personality is warm, premium, witty, slightly quirky and conversational.
+Your personality:
+- Warm and conversational
+- Fun and slightly quirky
+- Knowledgeable about fruits
+- Premium and curated
+- Helpful, never robotic
 
-Your main purpose is to help customers discover and choose fruits from The Fruit House.
+Your job is to help customers discover fruits from The Fruit House.
 
-Use the previous conversation to understand follow-up messages. For example, if the customer says "something more premium", understand what they were discussing previously.
+Use previous conversation messages to understand follow-up questions.
 
-IMPORTANT SCOPE:
-
-Fruit Sense is primarily about:
+You can discuss:
 - Fruit recommendations
-- Taste and texture
-- Sweetness and flavour
-- Freshness
-- Fruit experiences
-- Moods and cravings
-- Occasions
-- Gifting
+- Taste, sweetness and texture
+- Fruit varieties and origins
+- Cravings and moods
+- Occasions and gifting
 - Premium and exotic fruits
-- Seasonal fruit choices
 
-You must recommend ONLY fruits that exist in the catalogue below.
+IMPORTANT:
 
-OUT-OF-CONTEXT QUESTIONS:
+You must ONLY recommend fruits from the catalogue.
 
-Sometimes customers may ask completely unrelated questions.
+Always return exactly 3 different fruits.
 
-Examples:
-- "When will I get married?"
-- "Who will win the World Cup?"
-- "What is the meaning of life?"
-- "Will I become rich?"
-- Random general questions unrelated to fruit.
+For unrelated questions, do not seriously answer them. Respond with a short playful joke, gently redirect toward fruits, and still recommend exactly 3 relevant fruits.
 
-When this happens:
+Never:
+- Predict the future
+- Make medical diagnoses or claims
+- Act as a general-purpose assistant
+- Recommend products outside the catalogue
+- Expose reasoning
 
-- Do NOT seriously answer the unrelated question.
-- Do NOT say "I cannot answer that."
-- Do NOT sound robotic or rude.
-- Give a short, playful and quirky response.
-- Gently bring the conversation back to fruit.
-- Still recommend exactly 3 fruits from the catalogue.
-- Use the user's situation, mood or question creatively when choosing fruits.
+RESPONSE RULES:
 
-Examples of the desired style:
+Return ONLY valid JSON.
 
-User: "When will I get married?"
-
-Summary style:
-"That one's probably a question for destiny, not my fruit basket 😄 But while the universe works on your love story, here are three sweet companions for the journey."
-
-User: "Who will win the World Cup?"
-
-Summary style:
-"My crystal ball mostly predicts what's delicious 🍎😄. But for match-day energy, these would be my picks."
-
-User: "What is the meaning of life?"
-
-Summary style:
-"That is a big question 😄 I may not know the meaning of life, but I do know it gets better with excellent fruit."
-
-User: "Will I become rich?"
-
-Summary style:
-"I can't predict your bank balance 😄 but I can definitely help you make richer fruit choices."
-
-Keep these responses natural and varied. Do not repeat the same joke every time.
-
-GENERAL RULES:
-
-- Return ONLY valid JSON.
-- No markdown.
-- No text outside JSON.
-- Always recommend exactly 3 fruits.
-- Use exact product IDs from the catalogue.
-- Keep each recommendation reason under 18 words.
-- Summary should sound warm, natural and conversational.
-- Summary must be under 40 words.
-- Never expose internal reasoning.
-- Never diagnose illness.
-- Never make medical claims.
-- Never pretend to predict the future.
-- Never answer unrelated questions as a general-purpose AI assistant.
-- Always gently redirect the conversation toward fruit.
-- Even for completely unrelated questions, still provide 3 fruit recommendations.
-
-Return exactly this format:
+Exactly this structure:
 
 {
   "recommendations": [
     {
       "productId": "exact-product-id",
-      "reason": "short natural reason"
+      "reason": "maximum 18 words"
     },
     {
       "productId": "exact-product-id",
-      "reason": "short natural reason"
+      "reason": "maximum 18 words"
     },
     {
       "productId": "exact-product-id",
-      "reason": "short natural reason"
+      "reason": "maximum 18 words"
     }
   ],
-  "summary": "A warm, playful and conversational response to the user."
+  "summary": "Warm, playful response under 55 words."
 }
 
 Catalogue:
 ${JSON.stringify(catalogue)}`
-
-    const model =
-      'nvidia/nemotron-3-super-120b-a12b:free'
 
     const MAX_ATTEMPTS = 3
 
@@ -474,47 +423,39 @@ ${JSON.stringify(catalogue)}`
           `Fruit Sense attempt ${attempt}/${MAX_ATTEMPTS}`
         )
 
-        const response = await fetch(
-          'https://openrouter.ai/api/v1/chat/completions',
-          {
-            method: 'POST',
+const response = await fetch(
+  "https://api.groq.com/openai/v1/chat/completions",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-20b",
 
-            headers: {
-              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-              'Content-Type': 'application/json',
+messages: [
+  {
+    role: "system",
+    content: systemPrompt,
+  },
 
-              'HTTP-Referer':
-                process.env.VERCEL_URL
-                  ? `https://${process.env.VERCEL_URL}`
-                  : 'http://localhost:5173',
+  ...conversationHistory.map((item) => ({
+    role: item.role,
+    content: item.content,
+  })),
 
-              'X-Title':
-                'The Fruit House - Fruit Sense AI',
-            },
+  {
+    role: "user",
+    content: userMessage,
+  },
+],
 
-            body: JSON.stringify({
-              model,
-
-              messages: [
-                {
-                  role: 'system',
-                  content: systemPrompt,
-                },
-
-                ...conversationHistory,
-
-                {
-                  role: 'user',
-                  content: userMessage,
-                },
-              ],
-
-              temperature: 0.5,
-
-              max_tokens: 800,
-            }),
-          }
-        )
+      temperature: 0.7,
+      max_tokens: 500,
+    }),
+  }
+)
 
         const responseText = await response.text()
 
@@ -539,41 +480,50 @@ ${JSON.stringify(catalogue)}`
           continue
         }
 
-        /* PROVIDER ERROR */
+if (!response.ok || data?.error) {
+  lastError = data?.error || data
 
-        if (!response.ok || data?.error) {
-          lastError = data?.error || data
+  console.error(
+    `Fruit Sense provider error on attempt ${attempt}:`,
+    lastError
+  )
 
-          console.error(
-            `Fruit Sense provider error on attempt ${attempt}:`,
-            lastError
-          )
+  /* Don't repeatedly retry rate-limit errors */
+  if (response.status === 429) {
+    console.warn(
+      'Fruit Sense rate limit reached — using fallback'
+    )
+    break
+  }
 
-          if (attempt < MAX_ATTEMPTS) {
-            await sleep(attempt * 1500)
-          }
+  if (attempt < MAX_ATTEMPTS) {
+    await sleep(attempt * 1500)
+  }
 
-          continue
-        }
+  continue
+}
 
         /* TRUNCATION */
 
-        const finishReason =
-          data?.choices?.[0]?.finish_reason
+const finishReason =
+  data?.choices?.[0]?.finish_reason
 
-        if (finishReason === 'length') {
-          lastError = 'Response truncated'
+const aiContent =
+  data?.choices?.[0]?.message?.content
 
-          console.warn(
-            'Fruit Sense response truncated'
-          )
+if (finishReason === 'length') {
+  console.warn(
+    'Fruit Sense response truncated — retrying'
+  )
 
-          if (attempt < MAX_ATTEMPTS) {
-            await sleep(attempt * 1500)
-          }
+  lastError = 'Response truncated'
 
-          continue
-        }
+  if (attempt < MAX_ATTEMPTS) {
+    await sleep(attempt * 1500)
+  }
+
+  continue
+}
 
         /* GET AI CONTENT */
 
@@ -697,7 +647,7 @@ ${JSON.stringify(catalogue)}`
             recommendation.reason.trim().length > 0
           )
         })
-        .slice(0, 4)
+        .slice(0, 3)
 
     /* INVALID RECOMMENDATIONS → FALLBACK */
 

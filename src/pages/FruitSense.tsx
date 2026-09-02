@@ -30,25 +30,25 @@ type ChatMessage = {
 }
 
 
-
 const initialPrompts = [
-  'Something sweet',
-  'Something refreshing',
-  'I am feeling hungry',
-  'Show me something premium',
+  'I’m craving something sweet',
+  'I want something refreshing',
+  'Recommend something for my mood',
+  'Surprise me with something special',
 ]
 
 const followUpPrompts = [
-  'Something more premium',
-  'Not grapes',
-  'Something refreshing instead',
-  'Surprise me',
+  'Something a little more indulgent',
+  'Not grapes this time',
+  'Let’s go more refreshing',
+  'Pick something unexpected',
 ]
 
 const originFlags: Record<string, string> = {
   'New Zealand': '🇳🇿',
   Kenya: '🇰🇪',
   USA: '🇺🇸',
+  'United States': '🇺🇸',
   China: '🇨🇳',
   Chile: '🇨🇱',
   Vietnam: '🇻🇳',
@@ -60,13 +60,81 @@ const originFlags: Record<string, string> = {
   Turkey: '🇹🇷',
   Spain: '🇪🇸',
   Italy: '🇮🇹',
-  SouthAfrica: '🇿🇦',
   'South Africa': '🇿🇦',
+  France: '🇫🇷',
+  Germany: '🇩🇪',
   Egypt: '🇪🇬',
+  Brazil: '🇧🇷',
+  Argentina: '🇦🇷',
+  Thailand: '🇹🇭',
+  Philippines: '🇵🇭',
+  Greece: '🇬🇷',
+  Netherlands: '🇳🇱',
+  Belgium: '🇧🇪',
+  Morocco: '🇲🇦',
+  Israel: '🇮🇱',
+  'South Korea': '🇰🇷',
+  Korea: '🇰🇷',
+  Taiwan: '🇹🇼',
+
+  Iran: '🇮🇷',
+  Iraq: '🇮🇶',
+  Tunisia: '🇹🇳',
+  Pakistan: '🇵🇰',
+  Afghanistan: '🇦🇫',
+  Bangladesh: '🇧🇩',
+  SriLanka: '🇱🇰',
+  'Sri Lanka': '🇱🇰',
+  Indonesia: '🇮🇩',
+  Malaysia: '🇲🇾',
+  Singapore: '🇸🇬',
+  Cambodia: '🇰🇭',
+  Laos: '🇱🇦',
+  Myanmar: '🇲🇲',
+
+  UAE: '🇦🇪',
+  'United Arab Emirates': '🇦🇪',
+  SaudiArabia: '🇸🇦',
+  'Saudi Arabia': '🇸🇦',
+  Qatar: '🇶🇦',
+  Oman: '🇴🇲',
+  Jordan: '🇯🇴',
+  Lebanon: '🇱🇧',
+
+  Portugal: '🇵🇹',
+  Switzerland: '🇨🇭',
+  Austria: '🇦🇹',
+  Poland: '🇵🇱',
+  Denmark: '🇩🇰',
+  Sweden: '🇸🇪',
+  Norway: '🇳🇴',
+  Finland: '🇫🇮',
+  Ireland: '🇮🇪',
+  UK: '🇬🇧',
+  'United Kingdom': '🇬🇧',
+
+  Canada: '🇨🇦',
+  CostaRica: '🇨🇷',
+  'Costa Rica': '🇨🇷',
+  Guatemala: '🇬🇹',
+  Ecuador: '🇪🇨',
+  Colombia: '🇨🇴',
+  Uruguay: '🇺🇾',
+
+  SouthAfrica: '🇿🇦',
+  Ethiopia: '🇪🇹',
+  Zimbabwe: '🇿🇼',
+  Zambia: '🇿🇲',
+  Tanzania: '🇹🇿',
+  Uganda: '🇺🇬',
+
+  Russia: '🇷🇺',
+  Ukraine: '🇺🇦',
 }
 
-const getOriginFlag = (origin: string) =>
-  originFlags[origin] || '🌍'
+const getOriginFlag = (origin: string) => {
+  return originFlags[origin.trim()] || '🌍'
+}
 
 export default function FruitSense() {
   const [message, setMessage] = useState('')
