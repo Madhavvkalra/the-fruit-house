@@ -138,20 +138,38 @@ export default function FruitSense() {
         }
       )
 
-      const data: FruitSenseResponse =
-        await response.json()
+   const responseText = await response.text()
 
-      console.log(
-        'Fruit Sense frontend response:',
-        data
-      )
+let data: FruitSenseResponse
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data?.error ||
-            'Fruit Sense could not process your request.'
-        )
-      }
+try {
+  data = JSON.parse(responseText)
+} catch {
+  console.error(
+    'Fruit Sense received a non-JSON response:',
+    responseText
+  )
+
+  throw new Error(
+    responseText.startsWith('<!DOCTYPE') ||
+    responseText.startsWith('<html')
+      ? 'Fruit Sense server is temporarily unavailable. Please try again in a moment.'
+      : responseText ||
+          'Fruit Sense returned an unexpected response.'
+  )
+}
+
+console.log(
+  'Fruit Sense frontend response:',
+  data
+)
+
+if (!response.ok || !data.success) {
+  throw new Error(
+    data?.error ||
+      'Fruit Sense could not process your request.'
+  )
+}
 
       /* =========================================
          CREATE NATURAL ASSISTANT RESPONSE
