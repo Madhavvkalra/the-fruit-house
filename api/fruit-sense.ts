@@ -1,1086 +1,680 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { products } from '../src/data/products'
 
-const OPENROUTER_URL =
-  'https://openrouter.ai/api/v1/chat/completions'
-
-const MODEL = 'openrouter/free'
-
-type CatalogueProduct = {
-  id: string
-  name: string
-  origin: string
-  quantity: string
-  qualities: string[]
-  intents: string[]
-  keywords: string[]
+type AIRecommendation = {
+  productId: string
+  reason: string
 }
 
-type ModelRecommendation = {
-  productId?: unknown
-  reason?: unknown
-}
-
-type ModelResponse = {
-  recommendations?: ModelRecommendation[]
-  summary?: unknown
+type AIResponse = {
+  recommendations?: AIRecommendation[]
+  summary?: string
 }
 
 /* =================================================
-   THE FRUIT HOUSE CATALOGUE
+   HELPERS
 ================================================= */
 
-const catalogue: CatalogueProduct[] = [
-  {
-    id: 'gala-apples',
-    name: 'New Zealand Gala Apples',
-    origin: 'New Zealand',
-    quantity: '4 pcs · ~700–750g',
-    qualities: [
-      'sweet',
-      'crisp',
-      'juicy',
-      'refreshing',
-      'aromatic',
-    ],
-    intents: [
-      'everyday-snacking',
-      'refreshing',
-      'naturally-sweet',
-    ],
-    keywords: [
-      'apple',
-      'gala',
-      'sweet',
-      'crisp',
-      'juicy',
-      'refreshing',
-      'snack',
-    ],
-  },
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms))
 
-  {
-    id: 'red-delicious',
-    name: 'Red Delicious Apples',
-    origin: 'Washington, USA',
-    quantity: '4 pcs · ~700–750g',
-    qualities: [
-      'sweet',
-      'mild',
-      'juicy',
-      'soft',
-    ],
-    intents: [
-      'naturally-sweet',
-      'everyday-snacking',
-    ],
-    keywords: [
-      'apple',
-      'red delicious',
-      'sweet',
-      'juicy',
-      'snack',
-    ],
-  },
-
-  {
-    id: 'shine-muscat',
-    name: 'Shine Muscat Seedless Grapes',
-    origin: 'China',
-    quantity: '500g',
-    qualities: [
-      'very sweet',
-      'juicy',
-      'crisp',
-      'premium',
-      'seedless',
-    ],
-    intents: [
-      'indulgent',
-      'naturally-sweet',
-      'premium-snacking',
-    ],
-    keywords: [
-      'grapes',
-      'shine muscat',
-      'sweet',
-      'juicy',
-      'seedless',
-      'premium',
-    ],
-  },
-
-  {
-    id: 'turkish-cherries',
-    name: 'Turkish Cherries',
-    origin: 'Turkey',
-    quantity: 'Select your weight',
-    qualities: [
-      'sweet',
-      'juicy',
-      'premium',
-      'refreshing',
-    ],
-    intents: [
-      'premium-snacking',
-      'naturally-sweet',
-      'refreshing',
-    ],
-    keywords: [
-      'cherries',
-      'cherry',
-      'sweet',
-      'juicy',
-      'premium',
-    ],
-  },
-
-  {
-    id: 'avocado',
-    name: 'Avocado',
-    origin: 'Kenya',
-    quantity: 'Ready to eat',
-    qualities: [
-      'creamy',
-      'rich',
-      'mild',
-      'filling',
-    ],
-    intents: [
-      'filling',
-      'breakfast',
-      'balanced-meal',
-    ],
-    keywords: [
-      'avocado',
-      'creamy',
-      'filling',
-      'breakfast',
-      'rich',
-    ],
-  },
-
-  {
-    id: 'dragon-fruit',
-    name: 'Dragon Fruit',
-    origin: 'Vietnam',
-    quantity: '2 pcs',
-    qualities: [
-      'refreshing',
-      'light',
-      'juicy',
-      'mild',
-    ],
-    intents: [
-      'refreshing',
-      'light-snacking',
-    ],
-    keywords: [
-      'dragon fruit',
-      'refreshing',
-      'light',
-      'juicy',
-      'cooling',
-    ],
-  },
-
-  {
-    id: 'medjoul-dates',
-    name: 'Medjoul Dates',
-    origin: 'UAE',
-    quantity: '500g',
-    qualities: [
-      'very sweet',
-      'soft',
-      'rich',
-      'caramel-like',
-      'filling',
-    ],
-    intents: [
-      'naturally-sweet',
-      'indulgent',
-      'energy-snacking',
-    ],
-    keywords: [
-      'dates',
-      'medjoul',
-      'sweet',
-      'rich',
-      'snack',
-      'energy',
-    ],
-  },
-
-  {
-    id: 'kiwi-chile',
-    name: 'Kiwi',
-    origin: 'Chile',
-    quantity: '4 pcs',
-    qualities: [
-      'tangy',
-      'refreshing',
-      'juicy',
-    ],
-    intents: [
-      'refreshing',
-      'light-snacking',
-    ],
-    keywords: [
-      'kiwi',
-      'tangy',
-      'refreshing',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'queen-apples',
-    name: 'New Zealand Queen Apples',
-    origin: 'New Zealand',
-    quantity: '4 pcs · ~700–750g',
-    qualities: [
-      'sweet',
-      'crisp',
-      'juicy',
-    ],
-    intents: [
-      'everyday-snacking',
-      'naturally-sweet',
-    ],
-    keywords: [
-      'apple',
-      'queen apple',
-      'sweet',
-      'crisp',
-    ],
-  },
-
-  {
-    id: 'granny-smith',
-    name: 'Granny Smith Apples',
-    origin: 'USA',
-    quantity: '4 pcs · ~700–750g',
-    qualities: [
-      'tart',
-      'crisp',
-      'refreshing',
-    ],
-    intents: [
-      'refreshing',
-      'crisp-snacking',
-    ],
-    keywords: [
-      'apple',
-      'granny smith',
-      'tart',
-      'crisp',
-      'refreshing',
-    ],
-  },
-
-  {
-    id: 'packham-pears',
-    name: 'Packham Pears',
-    origin: 'South Africa',
-    quantity: '4 pcs · ~650–700g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'soft',
-    ],
-    intents: [
-      'everyday-snacking',
-      'naturally-sweet',
-    ],
-    keywords: [
-      'pear',
-      'packham',
-      'sweet',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'beauty-pears',
-    name: 'Beauty Pears',
-    origin: 'South Africa',
-    quantity: '4 pcs · ~650–700g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'delicate',
-    ],
-    intents: [
-      'everyday-snacking',
-      'naturally-sweet',
-    ],
-    keywords: [
-      'pear',
-      'beauty pear',
-      'sweet',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'egyptian-orange',
-    name: 'Egyptian Valencia Orange',
-    origin: 'Egypt',
-    quantity: '4 pcs · ~800–850g',
-    qualities: [
-      'juicy',
-      'refreshing',
-      'citrusy',
-      'sweet-tart',
-    ],
-    intents: [
-      'refreshing',
-      'juicy',
-      'morning-fruit',
-    ],
-    keywords: [
-      'orange',
-      'citrus',
-      'juicy',
-      'refreshing',
-      'valencia',
-    ],
-  },
-
-  {
-    id: 'south-african-orange',
-    name: 'South African Valencia Orange',
-    origin: 'South Africa',
-    quantity: '4 pcs · ~800–850g',
-    qualities: [
-      'juicy',
-      'refreshing',
-      'citrusy',
-    ],
-    intents: [
-      'refreshing',
-      'juicy',
-    ],
-    keywords: [
-      'orange',
-      'citrus',
-      'juicy',
-      'refreshing',
-    ],
-  },
-
-  {
-    id: 'royal-honey-murcott',
-    name: 'Royal Honey Murcott (RHM)',
-    origin: 'South Africa',
-    quantity: '800–850g',
-    qualities: [
-      'very sweet',
-      'juicy',
-      'citrusy',
-      'premium',
-    ],
-    intents: [
-      'naturally-sweet',
-      'refreshing',
-      'premium-snacking',
-    ],
-    keywords: [
-      'murcott',
-      'mandarin',
-      'sweet',
-      'citrus',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'nova-mandarin',
-    name: 'Nova Mandarin',
-    origin: 'South Africa',
-    quantity: '800–850g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'easy-snacking',
-    ],
-    intents: [
-      'refreshing',
-      'easy-snacking',
-    ],
-    keywords: [
-      'mandarin',
-      'nova',
-      'citrus',
-      'sweet',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'nadorcott',
-    name: 'Nadorcott Mandarins',
-    origin: 'South Africa',
-    quantity: '800–850g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'citrusy',
-    ],
-    intents: [
-      'refreshing',
-      'easy-snacking',
-    ],
-    keywords: [
-      'mandarin',
-      'nadorcott',
-      'citrus',
-      'sweet',
-    ],
-  },
-
-  {
-    id: 'red-globe',
-    name: 'Red Globe Grapes',
-    origin: 'China',
-    quantity: '500g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'crisp',
-    ],
-    intents: [
-      'naturally-sweet',
-      'snacking',
-      'refreshing',
-    ],
-    keywords: [
-      'grapes',
-      'red globe',
-      'sweet',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'black-finger',
-    name: 'Black Finger Grapes',
-    origin: 'China',
-    quantity: '500g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'premium',
-    ],
-    intents: [
-      'premium-snacking',
-      'naturally-sweet',
-    ],
-    keywords: [
-      'grapes',
-      'black finger',
-      'sweet',
-      'premium',
-    ],
-  },
-
-  {
-    id: 'blueberries',
-    name: 'Blueberries',
-    origin: 'Peru',
-    quantity: '125g',
-    qualities: [
-      'sweet-tart',
-      'juicy',
-      'light',
-    ],
-    intents: [
-      'light-snacking',
-      'breakfast',
-      'refreshing',
-    ],
-    keywords: [
-      'blueberries',
-      'berries',
-      'light',
-      'snack',
-    ],
-  },
-
-  {
-    id: 'new-zealand-kiwi',
-    name: 'Kiwi',
-    origin: 'New Zealand',
-    quantity: '4 pcs',
-    qualities: [
-      'tangy',
-      'refreshing',
-      'juicy',
-    ],
-    intents: [
-      'refreshing',
-      'light-snacking',
-    ],
-    keywords: [
-      'kiwi',
-      'new zealand',
-      'tangy',
-      'refreshing',
-    ],
-  },
-
-  {
-    id: 'golden-kiwi',
-    name: 'Golden Kiwi',
-    origin: 'New Zealand',
-    quantity: '4 pcs',
-    qualities: [
-      'sweet',
-      'tropical',
-      'juicy',
-      'refreshing',
-    ],
-    intents: [
-      'refreshing',
-      'naturally-sweet',
-      'premium-snacking',
-    ],
-    keywords: [
-      'golden kiwi',
-      'kiwi',
-      'sweet',
-      'tropical',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'chausa-mango',
-    name: 'Chausa Mango',
-    origin: 'India',
-    quantity: '2 pcs · ~750–800g',
-    qualities: [
-      'very sweet',
-      'juicy',
-      'tropical',
-      'rich',
-    ],
-    intents: [
-      'naturally-sweet',
-      'tropical',
-      'indulgent',
-    ],
-    keywords: [
-      'mango',
-      'chausa',
-      'sweet',
-      'very sweet',
-      'tropical',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'langda-mango',
-    name: 'Langda Mango',
-    origin: 'India',
-    quantity: '~800g',
-    qualities: [
-      'sweet',
-      'juicy',
-      'tropical',
-      'aromatic',
-      'rich',
-    ],
-    intents: [
-      'naturally-sweet',
-      'tropical',
-      'indulgent',
-    ],
-    keywords: [
-      'mango',
-      'langda',
-      'indian mango',
-      'sweet',
-      'tropical',
-      'juicy',
-    ],
-  },
-
-  {
-    id: 'kimia-dates',
-    name: 'Kimia Dates',
-    origin: 'Iran',
-    quantity: '500g',
-    qualities: [
-      'very sweet',
-      'soft',
-      'rich',
-      'caramel-like',
-    ],
-    intents: [
-      'naturally-sweet',
-      'indulgent',
-      'snacking',
-    ],
-    keywords: [
-      'dates',
-      'kimia',
-      'sweet',
-      'very sweet',
-      'soft',
-      'rich',
-    ],
-  },
-
-  {
-    id: 'zahidi-dates',
-    name: 'Zahidi Dates',
-    origin: 'Iraq',
-    quantity: 'Select your weight',
-    qualities: [
-      'sweet',
-      'firm',
-      'rich',
-      'snackable',
-    ],
-    intents: [
-      'naturally-sweet',
-      'snacking',
-      'indulgent',
-    ],
-    keywords: [
-      'dates',
-      'zahidi',
-      'sweet',
-      'firm',
-      'snack',
-    ],
-  },
-
-  {
-    id: 'alig-dates',
-    name: 'Alig Dates',
-    origin: 'Tunisia',
-    quantity: '200g',
-    qualities: [
-      'sweet',
-      'soft',
-      'snackable',
-      'rich',
-    ],
-    intents: [
-      'naturally-sweet',
-      'snacking',
-      'indulgent',
-    ],
-    keywords: [
-      'dates',
-      'alig',
-      'sweet',
-      'soft',
-      'snack',
-    ],
-  },
-]
+function cleanAIResponse(content: string) {
+  return content
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim()
+}
 
 /* =================================================
-   API HANDLER
+   LOCAL FALLBACK
+
+   This makes Fruit Sense work even when the free
+   AI provider is overloaded.
+================================================= */
+
+function getFallbackRecommendations(message: string) {
+  const query = message.toLowerCase()
+
+  const hasProduct = (id: string) =>
+    products.some((product) => product.id === id)
+
+  const pick = (
+    items: { productId: string; reason: string }[]
+  ) =>
+    items
+      .filter((item) => hasProduct(item.productId))
+      .slice(0, 4)
+
+  /* =============================================
+     HUNGRY / FILLING
+  ============================================= */
+
+  if (
+    query.includes('hungry') ||
+    query.includes('hunger') ||
+    query.includes('filling') ||
+    query.includes('full')
+  ) {
+    return {
+      recommendations: pick([
+        {
+          productId: 'avocado',
+          reason: 'Creamy and satisfying for a more filling snack.',
+        },
+        {
+          productId: 'medjoul-dates',
+          reason: 'Naturally sweet and satisfying when you need something substantial.',
+        },
+        {
+          productId: 'gala-apples',
+          reason: 'Crisp and easy to enjoy as a satisfying snack.',
+        },
+      ]),
+      summary:
+        'Here are some satisfying fruits for when you want something more filling.',
+    }
+  }
+
+  /* =============================================
+     LOW / SAD / DOWN
+  ============================================= */
+
+  if (
+    query.includes('sad') ||
+    query.includes('low') ||
+    query.includes('down') ||
+    query.includes('upset') ||
+    query.includes('bad mood')
+  ) {
+    return {
+      recommendations: pick([
+        {
+          productId: 'shine-muscat',
+          reason: 'Sweet, juicy grapes that feel like a little treat.',
+        },
+        {
+          productId: 'gala-apples',
+          reason: 'Naturally sweet and crisp for a comforting bite.',
+        },
+        {
+          productId: 'dragon-fruit',
+          reason: 'Light, refreshing and beautifully vibrant.',
+        },
+        {
+          productId: 'medjoul-dates',
+          reason: 'Rich natural sweetness for a comforting snack.',
+        },
+      ]),
+      summary:
+        'A few sweet and refreshing fruits to brighten your snack time.',
+    }
+  }
+
+  /* =============================================
+     WEAK / TIRED / LOW ENERGY
+
+     No medical claims.
+  ============================================= */
+
+  if (
+    query.includes('weak') ||
+    query.includes('tired') ||
+    query.includes('energy') ||
+    query.includes('exhausted')
+  ) {
+    return {
+      recommendations: pick([
+        {
+          productId: 'medjoul-dates',
+          reason: 'Naturally sweet and convenient when you want a quick snack.',
+        },
+        {
+          productId: 'gala-apples',
+          reason: 'Crisp, naturally sweet and easy to enjoy.',
+        },
+        {
+          productId: 'shine-muscat',
+          reason: 'Juicy and sweet for a refreshing snack.',
+        },
+      ]),
+      summary:
+        'Here are some naturally sweet and refreshing fruit options for you.',
+    }
+  }
+
+  /* =============================================
+     REFRESHING / JUICY
+  ============================================= */
+
+  if (
+    query.includes('refresh') ||
+    query.includes('juicy') ||
+    query.includes('fresh') ||
+    query.includes('hydrating')
+  ) {
+    return {
+      recommendations: pick([
+        {
+          productId: 'dragon-fruit',
+          reason: 'Light, refreshing and subtly sweet.',
+        },
+        {
+          productId: 'shine-muscat',
+          reason: 'Exceptionally juicy with a sweet flavour.',
+        },
+        {
+          productId: 'watermelon',
+          reason: 'A classic choice when you want something juicy and refreshing.',
+        },
+        {
+          productId: 'kiwi-chile',
+          reason: 'Bright and tangy with a refreshing flavour.',
+        },
+      ]),
+      summary:
+        'These are some fresh and refreshing choices from The Fruit House.',
+    }
+  }
+
+  /* =============================================
+     SWEET
+  ============================================= */
+
+  if (
+    query.includes('sweet') ||
+    query.includes('dessert') ||
+    query.includes('treat')
+  ) {
+    return {
+      recommendations: pick([
+        {
+          productId: 'shine-muscat',
+          reason: 'Beautifully sweet and juicy.',
+        },
+        {
+          productId: 'medjoul-dates',
+          reason: 'Rich natural sweetness with a caramel-like flavour.',
+        },
+        {
+          productId: 'gala-apples',
+          reason: 'Naturally sweet with a crisp bite.',
+        },
+      ]),
+      summary:
+        'A few naturally sweet picks selected for you.',
+    }
+  }
+
+  /* =============================================
+     PREMIUM / SPECIAL
+  ============================================= */
+
+  if (
+    query.includes('premium') ||
+    query.includes('special') ||
+    query.includes('luxury') ||
+    query.includes('exotic')
+  ) {
+    return {
+      recommendations: pick([
+        {
+          productId: 'shine-muscat',
+          reason: 'A premium grape experience with exceptional sweetness.',
+        },
+        {
+          productId: 'turkish-cherries',
+          reason: 'A beautiful premium fruit choice for something special.',
+        },
+        {
+          productId: 'golden-kiwi',
+          reason: 'Bright, distinctive and deliciously premium.',
+        },
+        {
+          productId: 'dragon-fruit',
+          reason: 'Visually striking and wonderfully unique.',
+        },
+      ]),
+      summary:
+        'Here are some premium and special picks from The Fruit House.',
+    }
+  }
+
+  /* =============================================
+     DEFAULT
+  ============================================= */
+
+  return {
+    recommendations: pick([
+      {
+        productId: 'gala-apples',
+        reason: 'A crisp and naturally sweet everyday favourite.',
+      },
+      {
+        productId: 'shine-muscat',
+        reason: 'Premium, juicy and beautifully sweet.',
+      },
+      {
+        productId: 'dragon-fruit',
+        reason: 'Light, refreshing and unique.',
+      },
+    ]),
+    summary:
+      'Here are a few handpicked fruits from The Fruit House.',
+  }
+}
+
+/* =================================================
+   MAIN HANDLER
 ================================================= */
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse,
+  res: VercelResponse
 ) {
-  res.setHeader(
-    'Content-Type',
-    'application/json',
-  )
-
   if (req.method !== 'POST') {
     return res.status(405).json({
-      success: false,
       error: 'Method not allowed',
     })
   }
 
-  const apiKey =
-    process.env.OPENROUTER_API_KEY
-
-  if (!apiKey) {
-    console.error(
-      'OPENROUTER_API_KEY is missing',
-    )
-
-    return res.status(500).json({
-      success: false,
-      error:
-        'Fruit Sense is not configured yet.',
-    })
-  }
-
   try {
-    const body = req.body ?? {}
+    const { message } = req.body
 
-    const message =
-      typeof body.message === 'string'
-        ? body.message.trim()
-        : ''
+    /* =============================================
+       VALIDATE MESSAGE
+    ============================================= */
 
-    if (!message) {
+    if (!message || typeof message !== 'string') {
       return res.status(400).json({
-        success: false,
         error:
           'Please tell Fruit Sense what you are looking for.',
       })
     }
 
-    if (message.length > 1000) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Please keep your message under 1000 characters.',
+    const OPENROUTER_API_KEY =
+      process.env.OPENROUTER_API_KEY
+
+    /* =============================================
+       IF API KEY MISSING → FALLBACK
+    ============================================= */
+
+    if (!OPENROUTER_API_KEY) {
+      console.warn(
+        'OPENROUTER_API_KEY missing — using local Fruit Sense'
+      )
+
+      return res.status(200).json({
+        success: true,
+        source: 'fallback',
+        ...getFallbackRecommendations(message),
       })
     }
 
-    /* =================================================
-       AI SYSTEM PROMPT
-    ================================================= */
-
-    const systemPrompt = `
-You are Fruit Sense.AI, the intelligent fruit guide
-for The Fruit House.
-
-Your job is to understand what the customer is:
-
-- feeling
-- experiencing
-- craving
-- looking for
-- trying to include in their lifestyle
-
-Then recommend suitable fruits ONLY from the
-provided The Fruit House catalogue.
-
-IMPORTANT RULES:
-
-1. You may ONLY recommend products whose exact
-   "id" appears in the catalogue.
-
-2. NEVER invent a fruit, product, variety,
-   origin or product ID.
-
-3. NEVER recommend anything outside the catalogue.
-
-4. Match the customer's request against the
-   product qualities, intents and keywords.
-
-5. Prefer the strongest and most relevant matches.
-
-6. Give practical, warm and simple recommendations.
-
-7. Recommendations must be framed as general food
-   suggestions, not medical advice.
-
-8. Do NOT diagnose medical conditions.
-
-9. Do NOT claim that any fruit can cure, treat,
-   prevent or guarantee improvement of a disease
-   or medical condition.
-
-10. Do NOT prescribe medication or treatment.
-
-11. If the customer describes a serious, dangerous
-    or persistent medical symptom, gently encourage
-    them to speak with a qualified healthcare
-    professional.
-
-12. Recommend between 2 and 4 products whenever
-    suitable products exist.
-
-13. Keep every recommendation reason short,
-    natural and useful.
-
-14. Return ONLY valid JSON.
-
-15. Do not include markdown.
-
-16. Do not include analysis or reasoning.
-
-17. Do not include text before or after the JSON.
-
-18. Your entire response MUST be one JSON object.
-
-19. The response MUST begin with { and end with }.
-
-Use EXACTLY this structure:
-
-{
-  "recommendations": [
-    {
-      "productId": "exact catalogue product id",
-      "reason": "Short explanation of why this fruit suits the customer's request"
-    }
-  ],
-  "summary": "One short warm sentence introducing the recommendations"
-}
-
-CATALOGUE:
-
-${JSON.stringify(catalogue)}
-`
-
-    console.log(
-      'Fruit Sense: starting OpenRouter request',
-    )
-
-    const controller =
-      new AbortController()
-
-    const timeout = setTimeout(() => {
-      controller.abort()
-    }, 15000)
-
-    let response: Response
-
-    try {
-      response = await fetch(
-        OPENROUTER_URL,
-        {
-          method: 'POST',
-
-          headers: {
-            Authorization:
-              `Bearer ${apiKey}`,
-
-            'Content-Type':
-              'application/json',
-
-            'HTTP-Referer':
-              'https://the-fruit-house.com',
-
-            'X-Title':
-              'The Fruit House - Fruit Sense AI',
-          },
-
-          body: JSON.stringify({
-            model: MODEL,
-
-            messages: [
-              {
-                role: 'system',
-                content: systemPrompt,
-              },
-
-              {
-                role: 'user',
-                content: message,
-              },
-            ],
-
-            temperature: 0.2,
-
-            max_tokens: 700,
-
-            stream: false,
-
-            response_format: {
-              type: 'json_object',
-            },
-          }),
-
-          signal: controller.signal,
-        },
-      )
-    } finally {
-      clearTimeout(timeout)
-    }
-
-    console.log(
-      'Fruit Sense: OpenRouter responded with status',
-      response.status,
-    )
-
-    const data = await response.json()
-
-    console.log(
-      'Fruit Sense FULL RESPONSE:',
-      JSON.stringify(data, null, 2),
-    )
-
-    if (!response.ok) {
-      console.error(
-        'OpenRouter error:',
-        data,
-      )
-
-      return res.status(502).json({
-        success: false,
-        error:
-          data?.error?.message ||
-          'Fruit Sense could not generate recommendations right now.',
-      })
-    }
-
-    /* =================================================
-       EXTRACT FINAL MODEL RESPONSE
+    /* =============================================
+       BUILD SMALLER CATALOGUE
 
        IMPORTANT:
-       We ONLY use message.content.
+       Don't send unnecessary fields to the model.
+    ============================================= */
 
-       We NEVER use message.reasoning as the response.
-    ================================================= */
+    const catalogue = products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+    }))
 
-    const messageData =
-      data?.choices?.[0]?.message
+    /* =============================================
+       SYSTEM PROMPT
 
-    const content =
-      typeof messageData?.content === 'string' &&
-      messageData.content.trim()
-        ? messageData.content.trim()
-        : null
+       Keep this SHORT to reduce token usage.
+    ============================================= */
 
-    console.log(
-      'Fruit Sense extracted response:',
-      content,
-    )
+    const systemPrompt = `You are Fruit Sense for The Fruit House.
 
-    if (!content) {
-      console.error(
-        'Empty OpenRouter response:',
-        data,
+Recommend ONLY products from this catalogue.
+
+Rules:
+- Return ONLY valid JSON.
+- No markdown.
+- No explanation.
+- Recommend exactly 3 fruits.
+- Use exact product IDs from the catalogue.
+- Reasons must be under 12 words.
+- Summary must be under 15 words.
+- Never diagnose or make medical claims.
+
+JSON format:
+{"recommendations":[{"productId":"id","reason":"short reason"}],"summary":"short summary"}
+
+Catalogue:
+${JSON.stringify(catalogue)}`
+
+    /* =============================================
+       AI CONFIG
+    ============================================= */
+
+    const model =
+      'nvidia/nemotron-3-super-120b-a12b:free'
+
+    const MAX_ATTEMPTS = 3
+
+    let rawResponse = ''
+    let lastError: unknown = null
+
+    /* =============================================
+       TRY AI
+    ============================================= */
+
+    for (
+      let attempt = 1;
+      attempt <= MAX_ATTEMPTS;
+      attempt++
+    ) {
+      try {
+        console.log(
+          `Fruit Sense: trying ${model} — attempt ${attempt}/${MAX_ATTEMPTS}`
+        )
+
+        const response = await fetch(
+          'https://openrouter.ai/api/v1/chat/completions',
+          {
+            method: 'POST',
+
+            headers: {
+              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json',
+
+              'HTTP-Referer':
+                process.env.VERCEL_URL
+                  ? `https://${process.env.VERCEL_URL}`
+                  : 'http://localhost:5173',
+
+              'X-Title':
+                'The Fruit House - Fruit Sense AI',
+            },
+
+            body: JSON.stringify({
+              model,
+
+              messages: [
+                {
+                  role: 'system',
+                  content: systemPrompt,
+                },
+                {
+                  role: 'user',
+                  content: message.trim(),
+                },
+              ],
+
+              temperature: 0.4,
+
+              /*
+               * IMPORTANT:
+               * Give the model enough tokens.
+               *
+               * Nemotron may use tokens internally,
+               * so 220 was too low.
+               */
+              max_tokens: 800,
+            }),
+          }
+        )
+
+        const data = await response.json()
+
+        console.log(
+          `Fruit Sense FULL RESPONSE — attempt ${attempt}:`,
+          JSON.stringify(data, null, 2)
+        )
+
+        /* =========================================
+           PROVIDER ERROR
+        ========================================= */
+
+        if (!response.ok || data?.error) {
+          lastError = data?.error || data
+
+          console.error(
+            `Fruit Sense failed attempt ${attempt}:`,
+            lastError
+          )
+
+          if (attempt < MAX_ATTEMPTS) {
+            await sleep(attempt * 1500)
+          }
+
+          continue
+        }
+
+        /* =========================================
+           CHECK TRUNCATION
+        ========================================= */
+
+        const finishReason =
+          data?.choices?.[0]?.finish_reason
+
+        if (finishReason === 'length') {
+          console.warn(
+            'Fruit Sense response was truncated'
+          )
+
+          lastError =
+            'Response truncated by token limit'
+
+          if (attempt < MAX_ATTEMPTS) {
+            await sleep(attempt * 1500)
+          }
+
+          continue
+        }
+
+        /* =========================================
+           GET CONTENT
+        ========================================= */
+
+        const content =
+          typeof data?.choices?.[0]?.message?.content ===
+          'string'
+            ? data.choices[0].message.content.trim()
+            : ''
+
+        console.log(
+          `Fruit Sense RAW RESPONSE — attempt ${attempt}:`,
+          content
+        )
+
+        if (!content) {
+          lastError = 'Empty AI response'
+
+          if (attempt < MAX_ATTEMPTS) {
+            await sleep(attempt * 1500)
+          }
+
+          continue
+        }
+
+        rawResponse = content
+
+        console.log(
+          `Fruit Sense SUCCESS on attempt ${attempt}`
+        )
+
+        break
+      } catch (error) {
+        lastError = error
+
+        console.error(
+          `Fruit Sense network error — attempt ${attempt}:`,
+          error
+        )
+
+        if (attempt < MAX_ATTEMPTS) {
+          await sleep(attempt * 1500)
+        }
+      }
+    }
+
+    /* =============================================
+       AI FAILED → LOCAL FALLBACK
+
+       THIS IS THE IMPORTANT PART.
+       Your website will still work.
+    ============================================= */
+
+    if (!rawResponse) {
+      console.warn(
+        'Fruit Sense AI unavailable — using fallback:',
+        lastError
       )
 
-      return res.status(502).json({
-        success: false,
-        error:
-          'Fruit Sense returned an empty response.',
+      return res.status(200).json({
+        success: true,
+        source: 'fallback',
+        ...getFallbackRecommendations(message),
       })
     }
 
-    console.log(
-      'Fruit Sense RAW MODEL RESPONSE:',
-      content,
-    )
+    /* =============================================
+       CLEAN RESPONSE
+    ============================================= */
 
-    /* =================================================
-       PARSE AI JSON
-    ================================================= */
+    const cleanedResponse =
+      cleanAIResponse(rawResponse)
 
-    let parsed: ModelResponse
+    const jsonStart =
+      cleanedResponse.indexOf('{')
+
+    const jsonEnd =
+      cleanedResponse.lastIndexOf('}')
+
+    if (
+      jsonStart === -1 ||
+      jsonEnd === -1 ||
+      jsonEnd <= jsonStart
+    ) {
+      console.warn(
+        'Fruit Sense invalid JSON shape — using fallback'
+      )
+
+      return res.status(200).json({
+        success: true,
+        source: 'fallback',
+        ...getFallbackRecommendations(message),
+      })
+    }
+
+    const jsonResponse =
+      cleanedResponse.slice(
+        jsonStart,
+        jsonEnd + 1
+      )
+
+    /* =============================================
+       PARSE JSON
+    ============================================= */
+
+    let parsedResponse: AIResponse
 
     try {
-      parsed = JSON.parse(content)
-    } catch {
+      parsedResponse = JSON.parse(jsonResponse)
+    } catch (error) {
       console.error(
-        'Invalid JSON from OpenRouter.',
-        'Raw content:',
-        content,
+        'Fruit Sense JSON parsing failed:',
+        jsonResponse
       )
 
-      return res.status(502).json({
-        success: false,
-        error:
-          'Fruit Sense returned an invalid response.',
+      return res.status(200).json({
+        success: true,
+        source: 'fallback',
+        ...getFallbackRecommendations(message),
       })
     }
 
-    /* =================================================
-       FINAL CATALOGUE VALIDATION
+    /* =============================================
+       VALIDATE PRODUCT IDS
+    ============================================= */
 
-       AI CANNOT SUCCESSFULLY RETURN PRODUCTS
-       THAT DO NOT EXIST IN OUR CATALOGUE.
-    ================================================= */
-
-    const productMap = new Map(
-      catalogue.map((product) => [
-        product.id,
-        product,
-      ]),
+    const validProductIds = new Set(
+      products.map((product) => product.id)
     )
 
-    const recommendations =
-      Array.isArray(parsed.recommendations)
-        ? parsed.recommendations
-            .filter(
-              (item) =>
-                item &&
-                typeof item.productId ===
-                  'string' &&
-                typeof item.reason ===
-                  'string' &&
-                productMap.has(
-                  item.productId,
-                ),
-            )
-            .slice(0, 4)
-            .map((item) => {
-              const product =
-                productMap.get(
-                  item.productId as string,
-                )!
+    const validRecommendations =
+      (parsedResponse.recommendations || [])
+        .filter((recommendation) => {
+          return (
+            recommendation &&
+            typeof recommendation.productId ===
+              'string' &&
+            validProductIds.has(
+              recommendation.productId
+            ) &&
+            typeof recommendation.reason ===
+              'string' &&
+            recommendation.reason.trim().length > 0
+          )
+        })
+        .slice(0, 4)
 
-              return {
-                productId: product.id,
-                fruit: product.name,
-                origin: product.origin,
-                quantity: product.quantity,
-                reason:
-                  item.reason as string,
-              }
-            })
-        : []
+    /* =============================================
+       INVALID AI RESPONSE → FALLBACK
+    ============================================= */
 
-    if (recommendations.length === 0) {
-      console.error(
-        'Fruit Sense returned no valid catalogue products.',
-        parsed,
+    if (validRecommendations.length === 0) {
+      console.warn(
+        'Fruit Sense returned invalid recommendations'
       )
 
-      return res.status(502).json({
-        success: false,
-        error:
-          'Fruit Sense could not find suitable fruits right now.',
+      return res.status(200).json({
+        success: true,
+        source: 'fallback',
+        ...getFallbackRecommendations(message),
       })
     }
 
-    /* =================================================
-       SUCCESS RESPONSE
-    ================================================= */
+    /* =============================================
+       FINAL SUCCESS
+    ============================================= */
+
+    const finalResponse = {
+      success: true,
+
+      source: 'ai',
+
+      recommendations: validRecommendations,
+
+      summary:
+        typeof parsedResponse.summary === 'string' &&
+        parsedResponse.summary.trim()
+          ? parsedResponse.summary.trim()
+          : 'Here are some fruits selected especially for you.',
+    }
+
+    console.log(
+      'Fruit Sense FINAL RESPONSE:',
+      finalResponse
+    )
+
+    return res.status(200).json(finalResponse)
+  } catch (error) {
+    console.error(
+      'Fruit Sense unexpected error:',
+      error
+    )
+
+    /*
+     * Final safety net.
+     */
+
+    const message =
+      typeof req.body?.message === 'string'
+        ? req.body.message
+        : ''
 
     return res.status(200).json({
       success: true,
-
-      recommendations,
-
-      summary:
-        typeof parsed.summary === 'string'
-          ? parsed.summary.trim()
-          : '',
-    })
-  } catch (error) {
-    console.error(
-      'Fruit Sense error:',
-      error,
-    )
-
-    if (
-      error instanceof Error &&
-      error.name === 'AbortError'
-    ) {
-      return res.status(504).json({
-        success: false,
-        error:
-          'Fruit Sense took too long to respond. Please try again.',
-      })
-    }
-
-    return res.status(500).json({
-      success: false,
-
-      error:
-        error instanceof Error
-          ? error.message
-          : String(error),
+      source: 'fallback',
+      ...getFallbackRecommendations(message),
     })
   }
 }
