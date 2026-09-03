@@ -20,7 +20,7 @@ import {
 
 import ProductPopup from './components/ProductPopup'
 import Basket from './components/Basket'
-
+import Footer from './components/Footer'
 import Home from './pages/Home'
 import HamperStudio from './pages/HamperStudio'
 import type { StudioMode } from './pages/HamperStudio'
@@ -953,15 +953,17 @@ basket={basket}
         CHECKOUT
     ========================================================= */}
 
-       {checkoutOpen && (
-      <Checkout
-        basket={basket}
-        basketTotal={basketTotal}
-        onClose={() => setCheckoutOpen(false)}
-      />
-    )}
+{checkoutOpen && (
+  <Checkout
+    basket={basket}
+    basketTotal={basketTotal}
+    onClose={() => setCheckoutOpen(false)}
+  />
+)}
 
-    <style>{`
+<Footer />
+
+<style>{`
   
   
 @keyframes productPopupFadeIn {

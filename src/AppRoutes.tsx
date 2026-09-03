@@ -5,6 +5,10 @@ import FruitSense from './pages/FruitSense'
 import RecipientLocation from './pages/RecipientLocation'
 import type { StudioMode } from './pages/HamperStudio'
 
+import ContactUs from './pages/ContactUs'
+import TermsAndConditions from './pages/TermsAndConditions'
+import RefundAndCancellation from './pages/RefundAndCancellation'
+
 export default function AppRoutes() {
   const [searchParams] = useSearchParams()
 
@@ -13,6 +17,14 @@ export default function AppRoutes() {
   const isRecipientPath = Boolean(useMatch('/recipient-location'))
   const isHamperStudio = Boolean(useMatch('/hamper-studio'))
   const isFruitSense = Boolean(useMatch('/fruit-sense'))
+
+ const isContactUs = Boolean(useMatch('/contact'))
+const isTermsAndConditions = Boolean(
+  useMatch('/terms-and-conditions')
+)
+const isRefundAndCancellation = Boolean(
+  useMatch('/refund-and-cancellation')
+)
 
   const isLegacyRecipientLink =
     searchParams.get('recipientLocation') === 'true'
@@ -24,6 +36,18 @@ export default function AppRoutes() {
   if (isFruitSense) {
     return <FruitSense />
   }
+
+  if (isContactUs) {
+  return <ContactUs />
+}
+
+if (isTermsAndConditions) {
+  return <TermsAndConditions />
+}
+
+if (isRefundAndCancellation) {
+  return <RefundAndCancellation />
+}
 
   if (!isHome && !productMatch && !isHamperStudio) {
     return <Navigate to="/" replace />

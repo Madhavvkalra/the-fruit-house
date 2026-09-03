@@ -22,32 +22,36 @@ const navItems: NavItem[] = [
     mobileLabel: 'Our',
     sectionId: 'our-story',
   },
-  {
-    label: 'Blogs',
-    mobileLabel: 'Blogs',
-    sectionId: 'blogs',
-  },
+ {
+  label: 'Contact Us',
+  mobileLabel: 'Contact',
+  sectionId: 'contact',
+},
 ]
 
 export default function Navbar() {
   const [activeSection, setActiveSection] = useState('')
 
-  const scrollToSection = (sectionId: string) => {
-    // Change active tab immediately
-    setActiveSection(sectionId)
-
-    const section = document.getElementById(sectionId)
-
-    if (!section) {
-      console.warn(`Section "${sectionId}" was not found`)
-      return
-    }
-
-    section.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    })
+const scrollToSection = (sectionId: string) => {
+  if (sectionId === 'contact') {
+    window.location.href = '/contact'
+    return
   }
+
+  setActiveSection(sectionId)
+
+  const section = document.getElementById(sectionId)
+
+  if (!section) {
+    console.warn(`Section "${sectionId}" was not found`)
+    return
+  }
+
+  section.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
 
 useEffect(() => {
   const handleScroll = () => {
@@ -237,9 +241,12 @@ const isLightBackground = activeSection === 'fruit-shop'
       <span>Our</span>
       <span>Story</span>
     </>
-  ) : (
-    <span>Blogs</span>
-  )}
+) : (
+  <>
+    <span>Contact</span>
+    <span>Us</span>
+  </>
+)}
 </span>
                 </button>
               )

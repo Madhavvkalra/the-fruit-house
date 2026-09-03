@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { products } from '../src/data/products.js'
+import { products } from '../src/data/products'
 
 type ChatHistoryItem = {
   role: 'user' | 'assistant'
@@ -507,9 +507,6 @@ if (!response.ok || data?.error) {
 
 const finishReason =
   data?.choices?.[0]?.finish_reason
-
-const aiContent =
-  data?.choices?.[0]?.message?.content
 
 if (finishReason === 'length') {
   console.warn(

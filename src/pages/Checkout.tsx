@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import CheckoutDelivery from './CheckoutDelivery'
 import type { DeliveryDetails } from './CheckoutDelivery'
+import { initiatePayment } from '../services/payment'
 
 type CheckoutBasketItem = {
   product: {
@@ -85,6 +86,17 @@ const [delivery, setDelivery] =
   const [savedAddressSelected, setSavedAddressSelected] =
     useState(false)
 
+  const [isProcessingPayment, setIsProcessingPayment] =
+  useState(false)
+
+const [paymentSuccess, setPaymentSuccess] =
+  useState(false)
+
+const [paymentError, setPaymentError] =
+  useState('')
+
+
+  
   const selectedCoupon =
     coupons.find(
       (coupon) => coupon.code === appliedCoupon
@@ -115,6 +127,8 @@ const convenienceFee: number = 0
     couponDiscount +
     deliveryCharge +
     convenienceFee
+
+
 const updateDelivery = (
   field: keyof DeliveryDetails,
   value: DeliveryDetails[keyof DeliveryDetails]
@@ -123,6 +137,42 @@ const updateDelivery = (
     ...current,
     [field]: value,
   }))
+}
+
+const handlePayment = async () => {
+  try {
+    setIsProcessingPayment(true)
+    setPaymentError('')
+
+    const result = await initiatePayment({
+      amount: grandTotal,
+      currency: 'INR',
+      customerName: delivery.name,
+      customerEmail: email,
+      customerPhone: delivery.mobile,
+    })
+
+    if (!result.success) {
+      throw new Error(result.message)
+    }
+
+    console.log(
+      'Payment successful:',
+      result.paymentId
+    )
+
+    setPaymentSuccess(true)
+  } catch (error) {
+    console.error('Payment failed:', error)
+
+    setPaymentError(
+      error instanceof Error
+        ? error.message
+        : 'Payment could not be completed.'
+    )
+  } finally {
+    setIsProcessingPayment(false)
+  }
 }
 
   return (
@@ -908,25 +958,51 @@ const updateDelivery = (
             )}
           </div>
 
-          <button
-            type="button"
-            disabled
-            className="
-              mt-7
-              flex
-              h-12
-              w-full
-              items-center
-              justify-center
-              rounded-full
-              bg-[#17351d]
-              text-sm
-              font-semibold
-              text-white
-              opacity-45
-            "
+         <button
+  type="button"
+  onClick={handlePayment}
+  disabled={isProcessingPayment || paymentSuccess}
+           className="
+  mt-5
+  w-full
+  rounded-full
+  bg-[#1F4D3A]
+  px-6
+  py-4
+  text-sm
+  font-semibold
+  text-[#F8F4E8]
+  transition-all
+  duration-200
+  hover:bg-[#173B2D]
+  hover:shadow-lg
+  disabled:cursor-not-allowed
+  disabled:opacity-60
+"
           >
-            Proceed to Payment
+
+          {paymentError && (
+  <p
+    className="
+      mt-4
+      rounded-[14px]
+      bg-red-50
+      px-4
+      py-3
+      text-center
+      text-xs
+      text-red-700
+    "
+  >
+    {paymentError}
+  </p>
+)}
+
+            {isProcessingPayment
+  ? 'Processing Payment...'
+  : paymentSuccess
+    ? 'Payment Successful'
+    : `Pay ₹${grandTotal.toLocaleString('en-IN')}`}
           </button>
 
           <p
