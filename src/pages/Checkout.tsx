@@ -92,6 +92,8 @@ const [delivery, setDelivery] =
 const [paymentSuccess, setPaymentSuccess] =
   useState(false)
 
+const [orderId, setOrderId] = useState('')
+
 const [paymentError, setPaymentError] =
   useState('')
 
@@ -145,11 +147,16 @@ const handlePayment = async () => {
     setPaymentError('')
 
     const result = await initiatePayment({
-      amount: grandTotal,
       currency: 'INR',
       customerName: delivery.name,
       customerEmail: email,
       customerPhone: delivery.mobile,
+      items: basket.map((item) => ({
+        productId: item.product.id,
+        variantLabel: item.variant.label,
+        quantity: item.quantity,
+      })),
+      couponCode: appliedCoupon,
     })
 
     if (!result.success) {
@@ -157,13 +164,69 @@ const handlePayment = async () => {
     }
 
     console.log(
-      'Payment successful:',
+      'Payment verified:',
       result.paymentId
     )
 
+    const orderResponse = await fetch('/api/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cashfreeOrderId: result.orderId,
+        cashfreePaymentId: result.paymentId,
+        customer: {
+          name: delivery.name,
+          email,
+          mobile: delivery.mobile,
+          recipientType: delivery.recipientType,
+        },
+        delivery: {
+          locationMethod: delivery.locationMethod,
+          latitude: delivery.latitude,
+          longitude: delivery.longitude,
+          location: delivery.location,
+          addressLine1: delivery.addressLine1,
+          addressLine2: delivery.addressLine2,
+          pinCode: delivery.pinCode,
+        },
+        items: basket.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          variantLabel: item.variant.label,
+          unitPrice: item.variant.price,
+          quantity: item.quantity,
+          lineTotal: item.variant.price * item.quantity,
+        })),
+        pricing: {
+          subtotal: basketTotal,
+          couponCode: appliedCoupon,
+          couponDiscount,
+          deliveryCharge,
+          convenienceFee,
+          grandTotal,
+        },
+      }),
+    })
+
+    const orderData = (await orderResponse.json()) as {
+      success: boolean
+      orderId?: string
+      message?: string
+    }
+
+    if (!orderResponse.ok || !orderData.success || !orderData.orderId) {
+      throw new Error(
+        orderData.message ||
+          'Payment was verified, but we could not create your order.'
+      )
+    }
+
+    setOrderId(orderData.orderId)
     setPaymentSuccess(true)
   } catch (error) {
-    console.error('Payment failed:', error)
+    console.error('Order/payment failed:', error)
 
     setPaymentError(
       error instanceof Error
@@ -1005,18 +1068,38 @@ const handlePayment = async () => {
     : `Pay ₹${grandTotal.toLocaleString('en-IN')}`}
           </button>
 
-          <p
-            className="
-              mt-3
-              text-center
-              text-[9px]
-              uppercase
-              tracking-[0.16em]
-              text-[#17351d]/30
-            "
-          >
-            Payment integration coming next
-          </p>
+          {paymentSuccess && orderId ? (
+            <div
+              className="
+                mt-4
+                rounded-[14px]
+                border
+                border-[#17351d]/10
+                bg-white/60
+                px-4
+                py-3
+                text-center
+              "
+            >
+              <p
+                className="
+                  text-[8px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.2em]
+                  text-[#17351d]/40
+                "
+              >
+                Order ID
+              </p>
+              <p className="mt-1 text-sm font-semibold">
+                {orderId}
+              </p>
+              <p className="mt-1 text-[10px] text-[#17351d]/45">
+                Payment verified and order confirmed.
+              </p>
+            </div>
+          ) : null}
         </section>
       )}
 
