@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { products } from '../src/data/products'
+import { products } from '../src/data/products.js'
 
 type ChatHistoryItem = {
   role: 'user' | 'assistant'
