@@ -1,4 +1,9 @@
-import { Navigate, useMatch, useSearchParams } from 'react-router-dom'
+import {
+  Navigate,
+  useLocation,
+  useMatch,
+  useSearchParams,
+} from 'react-router-dom'
 
 import App from './App'
 import FruitSense from './pages/FruitSense'
@@ -10,6 +15,17 @@ import TermsAndConditions from './pages/TermsAndConditions'
 import RefundAndCancellation from './pages/RefundAndCancellation'
 
 export default function AppRoutes() {
+
+    const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant',
+    })
+  }, [location.pathname, location.search])
+
   const [searchParams] = useSearchParams()
 
   const productMatch = useMatch('/fruit/:productId')
