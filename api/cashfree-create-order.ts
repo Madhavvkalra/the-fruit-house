@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { calculateOrderPricing } from '../src/utils/orderPricing'
+import { calculateOrderPricing } from '../src/utils/orderPricing.js'
 
 const CASHFREE_API_VERSION = '2025-01-01'
 
