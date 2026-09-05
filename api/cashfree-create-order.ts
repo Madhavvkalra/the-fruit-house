@@ -74,9 +74,14 @@ export default async function handler(
           customer_phone: customerPhone,
         },
 
-        order_tags: {
-          checkout_context: 'The Fruit House purchase',
-        },
+      order_tags: {
+  checkout_context: 'The Fruit House purchase',
+},
+
+order_meta: {
+  notify_url:
+    `${process.env.APP_URL}/api/cashfree-webhook`,
+},
       }),
     })
 
