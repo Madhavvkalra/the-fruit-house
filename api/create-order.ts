@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { neon } from '@neondatabase/serverless'
+import crypto from 'crypto'
 
 const CASHFREE_API_VERSION = '2025-01-01'
 
@@ -189,14 +190,78 @@ export default async function handler(
       )
     `
 
-    const existing = await sql`
-      SELECT order_id
-      FROM orders
-      WHERE cashfree_order_id = ${body.cashfreeOrderId}
-      LIMIT 1
+const orderId = `TFH-${Date.now()}-${crypto.randomUUID()}`
+
+    const inserted = await sql`
+      INSERT INTO orders (
+        order_id,
+        cashfree_order_id,
+        cashfree_payment_id,
+        customer_name,
+        customer_email,
+        customer_mobile,
+        recipient_type,
+        delivery_location_method,
+        delivery_latitude,
+        delivery_longitude,
+        delivery_location,
+        delivery_address_line1,
+        delivery_address_line2,
+        delivery_pin_code,
+        items,
+        subtotal,
+        coupon_code,
+        coupon_discount,
+        delivery_charge,
+        convenience_fee,
+        grand_total,
+        payment_status,
+        order_status
+      )
+      VALUES (
+        ${orderId},
+        ${body.cashfreeOrderId},
+        ${body.cashfreePaymentId},
+        ${body.customer.name},
+        ${body.customer.email},
+        ${body.customer.mobile},
+        ${body.customer.recipientType ?? null},
+        ${body.delivery.locationMethod ?? null},
+        ${body.delivery.latitude ?? null},
+        ${body.delivery.longitude ?? null},
+        ${body.delivery.location ?? null},
+        ${body.delivery.addressLine1 ?? null},
+        ${body.delivery.addressLine2 ?? null},
+        ${body.delivery.pinCode ?? null},
+        ${JSON.stringify(body.items)}::jsonb,
+        ${Number(body.pricing.subtotal)},
+        ${body.pricing.couponCode ?? null},
+        ${Number(body.pricing.couponDiscount)},
+        ${Number(body.pricing.deliveryCharge)},
+        ${Number(body.pricing.convenienceFee)},
+        ${Number(body.pricing.grandTotal)},
+        'PAID',
+        'PLACED'
+      )
+      ON CONFLICT (cashfree_order_id)
+      DO NOTHING
+      RETURNING order_id
     `
 
-    if (existing.length > 0) {
+    if (inserted.length === 0) {
+      const existing = await sql`
+        SELECT order_id
+        FROM orders
+        WHERE cashfree_order_id = ${body.cashfreeOrderId}
+        LIMIT 1
+      `
+
+      if (existing.length === 0) {
+        throw new Error(
+          'Order conflict occurred but existing order could not be retrieved.'
+        )
+      }
+
       return res.status(200).json({
         success: true,
         orderId: existing[0].order_id,
@@ -204,7 +269,6 @@ export default async function handler(
       })
     }
 
-    const orderId = `TFH-${Date.now()}`
 
     await sql`
       INSERT INTO orders (
