@@ -228,9 +228,31 @@ export default async function handler(
 
     // Customer-facing order number.
     // Example: TFH-9473579
-    const orderNumber = `TFH-${Date.now()
-      .toString()
-      .slice(-7)}`
+    const cashfreeOrderId = body.cashfreeOrderId
+
+const cashfreeTimestamp = Number(
+  cashfreeOrderId.replace(/^FH_/, '')
+)
+
+const orderDate = new Date(cashfreeTimestamp)
+
+const day = orderDate
+  .toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+  })
+  .replace(/\D/g, '')
+
+const month = orderDate
+  .toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    month: '2-digit',
+  })
+  .replace(/\D/g, '')
+
+const cashfreeSuffix = cashfreeOrderId.slice(-7)
+
+const orderNumber = `TFH${day}${month}${cashfreeSuffix}`
 
     const inserted = await sql`
       INSERT INTO orders (

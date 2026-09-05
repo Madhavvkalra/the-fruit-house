@@ -1084,21 +1084,61 @@ setPaymentSuccess(true)
       text-center
     "
   >
-    <p
-      className="
-        text-[8px]
-        font-semibold
-        uppercase
-        tracking-[0.2em]
-        text-[#17351d]/40
-      "
-    >
-      Order Number
-    </p>
+<p
+  className="
+    text-[8px]
+    font-semibold
+    uppercase
+    tracking-[0.2em]
+    text-[#17351d]/40
+  "
+>
+  Order Number
+</p>
 
-    <p className="mt-1 text-sm font-semibold">
-      {orderNumber || orderId}
-    </p>
+<div className="mt-1 flex items-center justify-center gap-2">
+  <p className="text-sm font-semibold tracking-[0.04em]">
+    {orderNumber || orderId}
+  </p>
+
+  <button
+    type="button"
+    onClick={async () => {
+      const value = orderNumber || orderId
+
+      try {
+        await navigator.clipboard.writeText(value)
+      } catch {
+        const textarea = document.createElement('textarea')
+        textarea.value = value
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        textarea.remove()
+      }
+    }}
+    className="
+      inline-flex
+      h-7
+      w-7
+      items-center
+      justify-center
+      rounded-full
+      border
+      border-[#17351d]/10
+      bg-white/70
+      text-[#17351d]/60
+      transition
+      hover:bg-white
+      hover:text-[#17351d]
+      active:scale-95
+    "
+    aria-label="Copy order number"
+    title="Copy order number"
+  >
+    ⧉
+  </button>
+</div>
 
     <p className="mt-1 text-[10px] text-[#17351d]/45">
       Payment verified and order confirmed.
