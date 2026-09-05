@@ -2,6 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { neon } from '@neondatabase/serverless'
 import crypto from 'crypto'
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
 const CASHFREE_API_VERSION = '2025-01-01'
 
 function getHeader(
@@ -17,16 +23,20 @@ function getHeader(
   return value
 }
 
-function getRawBody(req: VercelRequest): string {
-  if (typeof req.body === 'string') {
-    return req.body
+async function getRawBody(
+  req: VercelRequest
+): Promise<string> {
+  const chunks: Buffer[] = []
+
+  for await (const chunk of req) {
+    chunks.push(
+      Buffer.isBuffer(chunk)
+        ? chunk
+        : Buffer.from(chunk)
+    )
   }
 
-  if (Buffer.isBuffer(req.body)) {
-    return req.body.toString('utf8')
-  }
-
-  return JSON.stringify(req.body ?? {})
+  return Buffer.concat(chunks).toString('utf8')
 }
 
 function verifyCashfreeSignature(
@@ -103,7 +113,7 @@ export default async function handler(
     })
   }
 
-  const rawBody = getRawBody(req)
+const rawBody = await getRawBody(req)
 
   const isValid = verifyCashfreeSignature(
     rawBody,
