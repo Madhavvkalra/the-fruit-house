@@ -158,10 +158,12 @@ export default async function handler(
 
     const sql = neon(databaseUrl)
 
+    // Create the table if it does not already exist.
     await sql`
       CREATE TABLE IF NOT EXISTS orders (
         id BIGSERIAL PRIMARY KEY,
         order_id TEXT NOT NULL UNIQUE,
+        order_number TEXT UNIQUE,
         cashfree_order_id TEXT NOT NULL UNIQUE,
         cashfree_payment_id TEXT NOT NULL,
         customer_name TEXT NOT NULL,
@@ -188,9 +190,24 @@ export default async function handler(
       )
     `
 
-    // First check whether this Cashfree order has already been stored.
+    // IMPORTANT:
+    // CREATE TABLE IF NOT EXISTS does not add a column to an
+    // existing table. Add order_number safely if this is an
+    // older orders table.
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS order_number TEXT
+    `
+
+    // Make sure the customer-facing order number is unique.
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS orders_order_number_key
+      ON orders(order_number)
+    `
+
+    // Check whether this Cashfree order has already been stored.
     const existing = await sql`
-      SELECT order_id
+      SELECT order_id, order_number
       FROM orders
       WHERE cashfree_order_id = ${body.cashfreeOrderId}
       LIMIT 1
@@ -200,16 +217,25 @@ export default async function handler(
       return res.status(200).json({
         success: true,
         orderId: existing[0].order_id,
+        orderNumber: existing[0].order_number,
         alreadyCreated: true,
       })
     }
 
-    // Generate a unique Fruit House order ID.
+    // Internal database identifier.
+    // This stays long and globally unique.
     const orderId = `TFH-${Date.now()}-${crypto.randomUUID()}`
+
+    // Customer-facing order number.
+    // Example: TFH-9473579
+    const orderNumber = `TFH-${Date.now()
+      .toString()
+      .slice(-7)}`
 
     const inserted = await sql`
       INSERT INTO orders (
         order_id,
+        order_number,
         cashfree_order_id,
         cashfree_payment_id,
         customer_name,
@@ -235,6 +261,7 @@ export default async function handler(
       )
       VALUES (
         ${orderId},
+        ${orderNumber},
         ${body.cashfreeOrderId},
         ${body.cashfreePaymentId},
         ${body.customer.name},
@@ -260,14 +287,14 @@ export default async function handler(
       )
       ON CONFLICT (cashfree_order_id)
       DO NOTHING
-      RETURNING order_id
+      RETURNING order_id, order_number
     `
 
-    // If another request created the same Cashfree order between
-    // our SELECT and INSERT, return the already-created order.
+    // Another request may have created the same Cashfree order
+    // between our SELECT and INSERT.
     if (inserted.length === 0) {
       const existingAfterConflict = await sql`
-        SELECT order_id
+        SELECT order_id, order_number
         FROM orders
         WHERE cashfree_order_id = ${body.cashfreeOrderId}
         LIMIT 1
@@ -277,6 +304,7 @@ export default async function handler(
         return res.status(200).json({
           success: true,
           orderId: existingAfterConflict[0].order_id,
+          orderNumber: existingAfterConflict[0].order_number,
           alreadyCreated: true,
         })
       }
@@ -289,6 +317,7 @@ export default async function handler(
     return res.status(201).json({
       success: true,
       orderId: inserted[0].order_id,
+      orderNumber: inserted[0].order_number,
       alreadyCreated: false,
     })
   } catch (error) {

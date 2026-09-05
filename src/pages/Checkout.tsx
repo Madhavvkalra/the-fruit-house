@@ -94,6 +94,7 @@ const [paymentSuccess, setPaymentSuccess] =
 
 const [orderId, setOrderId] = useState('')
 
+const [orderNumber, setOrderNumber] = useState('')
 const [paymentError, setPaymentError] =
   useState('')
 
@@ -213,6 +214,7 @@ const handlePayment = async () => {
     const orderData = (await orderResponse.json()) as {
       success: boolean
       orderId?: string
+      orderNumber?: string
       message?: string
     }
 
@@ -224,7 +226,8 @@ const handlePayment = async () => {
     }
 
     setOrderId(orderData.orderId)
-    setPaymentSuccess(true)
+setOrderNumber(orderData.orderNumber || orderData.orderId)
+setPaymentSuccess(true)
   } catch (error) {
     console.error('Order/payment failed:', error)
 
@@ -1068,38 +1071,40 @@ const handlePayment = async () => {
     : `Pay ₹${grandTotal.toLocaleString('en-IN')}`}
           </button>
 
-          {paymentSuccess && orderId ? (
-            <div
-              className="
-                mt-4
-                rounded-[14px]
-                border
-                border-[#17351d]/10
-                bg-white/60
-                px-4
-                py-3
-                text-center
-              "
-            >
-              <p
-                className="
-                  text-[8px]
-                  font-semibold
-                  uppercase
-                  tracking-[0.2em]
-                  text-[#17351d]/40
-                "
-              >
-                Order ID
-              </p>
-              <p className="mt-1 text-sm font-semibold">
-                {orderId}
-              </p>
-              <p className="mt-1 text-[10px] text-[#17351d]/45">
-                Payment verified and order confirmed.
-              </p>
-            </div>
-          ) : null}
+{paymentSuccess && orderId ? (
+  <div
+    className="
+      mt-4
+      rounded-[14px]
+      border
+      border-[#17351d]/10
+      bg-white/60
+      px-4
+      py-3
+      text-center
+    "
+  >
+    <p
+      className="
+        text-[8px]
+        font-semibold
+        uppercase
+        tracking-[0.2em]
+        text-[#17351d]/40
+      "
+    >
+      Order Number
+    </p>
+
+    <p className="mt-1 text-sm font-semibold">
+      {orderNumber || orderId}
+    </p>
+
+    <p className="mt-1 text-[10px] text-[#17351d]/45">
+      Payment verified and order confirmed.
+    </p>
+  </div>
+) : null}
         </section>
       )}
 
