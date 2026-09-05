@@ -98,9 +98,7 @@ export default async function handler(
         ? 'https://api.cashfree.com/pg'
         : 'https://sandbox.cashfree.com/pg'
 
-    // Verify the Cashfree order again on the server before
-    // creating a Fruit House order. The browser is never the
-    // source of truth for payment status.
+    // Verify the Cashfree payment independently on the server.
     const cashfreeResponse = await fetch(
       `${baseUrl}/orders/${encodeURIComponent(
         body.cashfreeOrderId
@@ -190,7 +188,24 @@ export default async function handler(
       )
     `
 
-const orderId = `TFH-${Date.now()}-${crypto.randomUUID()}`
+    // First check whether this Cashfree order has already been stored.
+    const existing = await sql`
+      SELECT order_id
+      FROM orders
+      WHERE cashfree_order_id = ${body.cashfreeOrderId}
+      LIMIT 1
+    `
+
+    if (existing.length > 0) {
+      return res.status(200).json({
+        success: true,
+        orderId: existing[0].order_id,
+        alreadyCreated: true,
+      })
+    }
+
+    // Generate a unique Fruit House order ID.
+    const orderId = `TFH-${Date.now()}-${crypto.randomUUID()}`
 
     const inserted = await sql`
       INSERT INTO orders (
@@ -248,84 +263,32 @@ const orderId = `TFH-${Date.now()}-${crypto.randomUUID()}`
       RETURNING order_id
     `
 
+    // If another request created the same Cashfree order between
+    // our SELECT and INSERT, return the already-created order.
     if (inserted.length === 0) {
-      const existing = await sql`
+      const existingAfterConflict = await sql`
         SELECT order_id
         FROM orders
         WHERE cashfree_order_id = ${body.cashfreeOrderId}
         LIMIT 1
       `
 
-      if (existing.length === 0) {
-        throw new Error(
-          'Order conflict occurred but existing order could not be retrieved.'
-        )
+      if (existingAfterConflict.length > 0) {
+        return res.status(200).json({
+          success: true,
+          orderId: existingAfterConflict[0].order_id,
+          alreadyCreated: true,
+        })
       }
 
-      return res.status(200).json({
-        success: true,
-        orderId: existing[0].order_id,
-        alreadyCreated: true,
-      })
+      throw new Error(
+        'Order could not be created because the database rejected the insert.'
+      )
     }
-
-
-    await sql`
-      INSERT INTO orders (
-        order_id,
-        cashfree_order_id,
-        cashfree_payment_id,
-        customer_name,
-        customer_email,
-        customer_mobile,
-        recipient_type,
-        delivery_location_method,
-        delivery_latitude,
-        delivery_longitude,
-        delivery_location,
-        delivery_address_line1,
-        delivery_address_line2,
-        delivery_pin_code,
-        items,
-        subtotal,
-        coupon_code,
-        coupon_discount,
-        delivery_charge,
-        convenience_fee,
-        grand_total,
-        payment_status,
-        order_status
-      )
-      VALUES (
-        ${orderId},
-        ${body.cashfreeOrderId},
-        ${body.cashfreePaymentId},
-        ${body.customer.name},
-        ${body.customer.email},
-        ${body.customer.mobile},
-        ${body.customer.recipientType ?? null},
-        ${body.delivery.locationMethod ?? null},
-        ${body.delivery.latitude ?? null},
-        ${body.delivery.longitude ?? null},
-        ${body.delivery.location ?? null},
-        ${body.delivery.addressLine1 ?? null},
-        ${body.delivery.addressLine2 ?? null},
-        ${body.delivery.pinCode ?? null},
-        ${JSON.stringify(body.items)}::jsonb,
-        ${Number(body.pricing.subtotal)},
-        ${body.pricing.couponCode ?? null},
-        ${Number(body.pricing.couponDiscount)},
-        ${Number(body.pricing.deliveryCharge)},
-        ${Number(body.pricing.convenienceFee)},
-        ${Number(body.pricing.grandTotal)},
-        'PAID',
-        'PLACED'
-      )
-    `
 
     return res.status(201).json({
       success: true,
-      orderId,
+      orderId: inserted[0].order_id,
       alreadyCreated: false,
     })
   } catch (error) {
